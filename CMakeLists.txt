@@ -12,3 +12,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_subdirectory(common-lib)
 
 add_executable(demo main.cpp)
+
+add_executable(IPC1 IPCtest1.cpp)
+add_executable(IPC11 IPCtest11.cpp)
+# add_executable(IPC2 IPCtest2.cpp)
