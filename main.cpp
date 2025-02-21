@@ -1,6 +1,10 @@
 #include <iostream>
+#include "common-lib/types.hpp"
 
 int main() {
-    std::cout << "This is a demo " << sizeof(char[255]) << "\n"; 
+    auto a = LongDecimal<18>::FromRaw({1,2});
+    std::cout << "a " << a.ToDouble() << "\n";
+    std::cout << "a " << a.ToString() << "\n";
     return 0;
 }
+

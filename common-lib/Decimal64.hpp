@@ -44,14 +44,14 @@ class DecimalBase {
 protected:
     int64_t value;
 
-    static void checkAddOverflow(int64_t a, int64_t b) {
+    static void CheckAddOverflow(int64_t a, int64_t b) {
         if ((b > 0 && a > INT64_MAX - b) || 
             (b < 0 && a < INT64_MIN - b)) {
             throw std::overflow_error("Addition overflow");
         }
     }
 
-    static void checkSubOverflow(int64_t a, int64_t b) {
+    static void CheckSubOverflow(int64_t a, int64_t b) {
         if ((b > 0 && a < INT64_MIN + b) ||
             (b < 0 && a > INT64_MAX + b)) {
             throw std::overflow_error("Subtraction overflow");
@@ -63,11 +63,11 @@ protected:
     DecimalBase() : value(0) {}
 
 public:
-    static Derived fromRaw(int64_t rawValue) {
+    static Derived FromRaw(int64_t rawValue) {
         return Derived(rawValue);
     }
 
-    static Derived fromInteger(int64_t integer) { 
+    static Derived FromInteger(int64_t integer) { 
         int64_t raw;
         if (__builtin_mul_overflow(integer, Decimal<DecimalPrecision>::SCALING_FACTOR, &raw)) {
             throw std::overflow_error("Integer conversion overflow");
@@ -75,7 +75,7 @@ public:
         return Derived(raw);
     }
 
-    static Derived fromDouble(double d) {
+    static Derived FromDouble(double d) {
         double scaled = d * Decimal<DecimalPrecision>::SCALING_FACTOR;
         if (scaled > INT64_MAX || scaled < INT64_MIN) {
             throw std::overflow_error("Double conversion overflow");
@@ -83,26 +83,26 @@ public:
         return Derived(static_cast<int64_t>(scaled));
     }
 
-    double toDouble() const {
+    double ToDouble() const {
         return static_cast<double>(value) / Decimal<DecimalPrecision>::SCALING_FACTOR;
     }
 
-    int64_t getRawValue() const {
+    int64_t GetRawValue() const {
         return value;
     }
 
     Derived operator+(const Derived& rhs) const {
-        checkAddOverflow(value, rhs.value);
+        CheckAddOverflow(value, rhs.value);
         return Derived(value + rhs.value);
     }
 
     Derived operator-(const Derived& rhs) const {
-        checkSubOverflow(value, rhs.value);
+        CheckSubOverflow(value, rhs.value);
         return Derived(value - rhs.value);
     }
 
     Derived operator*(const Derived& rhs) const {
-        __int128_t result = static_cast<const Derived&>(*this).multiply(rhs);
+        __int128_t result = static_cast<const Derived&>(*this).Multiply(rhs);
         if (result > INT64_MAX || result < INT64_MIN) {
             throw std::overflow_error("Multiplication overflow");
         }
@@ -111,7 +111,7 @@ public:
 
     Derived operator/(const Derived& rhs) const {
         if (rhs.value == 0) throw std::invalid_argument("Division by zero");
-        __int128_t result = static_cast<const Derived&>(*this).divide(rhs);
+        __int128_t result = static_cast<const Derived&>(*this).Divide(rhs);
         if (result > INT64_MAX || result < INT64_MIN) {
             throw std::overflow_error("Division overflow");
         }
@@ -119,13 +119,13 @@ public:
     }
 
     Derived& operator+=(const Derived& rhs) { 
-        checkAddOverflow(value, rhs.value);
+        CheckAddOverflow(value, rhs.value);
         value += rhs.value;
         return static_cast<Derived&>(*this);
     }
 
     Derived& operator-=(const Derived& rhs) { 
-        checkSubOverflow(value, rhs.value);
+        CheckSubOverflow(value, rhs.value);
         value -= rhs.value;
         return static_cast<Derived&>(*this);
     }
@@ -155,7 +155,7 @@ public:
 
     DecmailUp() : DecimalBase<DecimalPrecision, DecmailUp>() {}
 
-    __int128_t multiply(const DecmailUp& rhs) const {
+    __int128_t Multiply(const DecmailUp& rhs) const {
         static constexpr int64_t SCALING_FACTOR_DIV10 = Decimal<DecimalPrecision>::SCALING_FACTOR / 10;
         const __int128_t product = static_cast<__int128_t>((*this).value) * rhs.value;
         const __int128_t adjusted = product + (product > 0 ? (Decimal<DecimalPrecision>::SCALING_FACTOR - SCALING_FACTOR_DIV10) : 
@@ -163,7 +163,7 @@ public:
         return adjusted / Decimal<DecimalPrecision>::SCALING_FACTOR;
     }
 
-    __int128_t divide(const DecmailUp& rhs) const {
+    __int128_t Divide(const DecmailUp& rhs) const {
         const bool same_sign = ((*this).value > 0) == (rhs.value > 0);
         const __int128_t dividend = static_cast<__int128_t>((*this).value) * Decimal<DecimalPrecision>::SCALING_FACTOR;
         const __int128_t divsor = rhs.value;
@@ -179,11 +179,11 @@ public:
 
     DecmailUp() : DecimalBase<0, DecmailUp>() {}
 
-    __int128_t multiply(const DecmailUp& rhs) const {
+    __int128_t Multiply(const DecmailUp& rhs) const {
         return static_cast<__int128_t>((*this).value) * rhs.value;
     }
 
-    __int128_t divide(const DecmailUp& rhs) const {
+    __int128_t Divide(const DecmailUp& rhs) const {
         const bool same_sign = ((*this).value > 0) == (rhs.value > 0);
         const __int128_t dividend = static_cast<__int128_t>((*this).value);
         const __int128_t divsor = rhs.value;
@@ -199,12 +199,12 @@ public:
 
     DecmailDown() : DecimalBase<DecimalPrecision, DecmailDown>() {}
 
-    __int128_t multiply(const DecmailDown& rhs) const {
+    __int128_t Multiply(const DecmailDown& rhs) const {
         const __int128_t product = static_cast<__int128_t>((*this).value) * rhs.value;
         return product / Decimal<DecimalPrecision>::SCALING_FACTOR;
     }
 
-    __int128_t divide(const DecmailDown& rhs) const {
+    __int128_t Divide(const DecmailDown& rhs) const {
         const __int128_t dividend = static_cast<__int128_t>((*this).value) * Decimal<DecimalPrecision>::SCALING_FACTOR;
         return dividend / rhs.value;
     }
@@ -217,14 +217,14 @@ public:
 
     DecmailNear() : DecimalBase<DecimalPrecision, DecmailNear>() {}
 
-    __int128_t multiply(const DecmailNear& rhs) const {
+    __int128_t Multiply(const DecmailNear& rhs) const {
         static constexpr int64_t HALF_FACTOR = Decimal<DecimalPrecision>::SCALING_FACTOR / 2;
         const __int128_t product = static_cast<__int128_t>((*this).value) * rhs.value;
         const __int128_t adjusted = product + (product > 0 ? HALF_FACTOR : -HALF_FACTOR);
         return adjusted / Decimal<DecimalPrecision>::SCALING_FACTOR;
     }
 
-    __int128_t divide(const DecmailNear& rhs) const {
+    __int128_t Divide(const DecmailNear& rhs) const {
         const bool same_sign = ((*this).value > 0) == (rhs.value > 0);
         const __int128_t dividend = static_cast<__int128_t>((*this).value) * Decimal<DecimalPrecision>::SCALING_FACTOR;
         const __int128_t divsor = rhs.value;
@@ -240,11 +240,11 @@ public:
 
     DecmailNear() : DecimalBase<0, DecmailNear>() {}
 
-    __int128_t multiply(const DecmailNear& rhs) const {
+    __int128_t Multiply(const DecmailNear& rhs) const {
         return static_cast<__int128_t>((*this).value) * rhs.value;
     }
 
-    __int128_t divide(const DecmailNear& rhs) const {
+    __int128_t Divide(const DecmailNear& rhs) const {
         const bool same_sign = ((*this).value > 0) == (rhs.value > 0);
         const __int128_t dividend = static_cast<__int128_t>((*this).value);
         const __int128_t divsor = rhs.value;

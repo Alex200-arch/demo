@@ -1,85 +1,85 @@
 #include <benchmark/benchmark.h>
-#include "../Decimal64.hpp"
+#include "../decimal64.hpp"
 
 namespace BM_Decimal64 {
 
-    using Decimal_t = Decimal<8>;
+    using Decimal_T = Decimal<8>;
 
-    Decimal_t::UP Addition() {
-        Decimal_t::UP a = Decimal_t::UP::fromRaw(25);
-        Decimal_t::UP b = Decimal_t::UP::fromRaw(37);
+    Decimal_T::UP Addition() {
+        Decimal_T::UP a = Decimal_T::UP::FromRaw(25);
+        Decimal_T::UP b = Decimal_T::UP::FromRaw(37);
         return a + b;
     }
 
-    Decimal_t::DOWN Subtraction() {
-        Decimal_t::DOWN a = Decimal_t::DOWN::fromRaw(58);
-        Decimal_t::DOWN b = Decimal_t::DOWN::fromRaw(24);
+    Decimal_T::DOWN Subtraction() {
+        Decimal_T::DOWN a = Decimal_T::DOWN::FromRaw(58);
+        Decimal_T::DOWN b = Decimal_T::DOWN::FromRaw(24);
         return a - b;
     }
 
-    Decimal_t::UP Multiplication() {
-        Decimal_t::UP a = Decimal_t::UP::fromRaw(15);
-        Decimal_t::UP b = Decimal_t::UP::fromRaw(21);
+    Decimal_T::UP Multiplication() {
+        Decimal_T::UP a = Decimal_T::UP::FromRaw(15);
+        Decimal_T::UP b = Decimal_T::UP::FromRaw(21);
         return a * b;
     }
 
-    Decimal_t::UP DivisionUP() {
-        Decimal_t::UP a = Decimal_t::UP::fromRaw(60);
-        Decimal_t::UP b = Decimal_t::UP::fromRaw(20);
+    Decimal_T::UP DivisionUP() {
+        Decimal_T::UP a = Decimal_T::UP::FromRaw(60);
+        Decimal_T::UP b = Decimal_T::UP::FromRaw(20);
         return a / b;
     }
 
-    Decimal_t::DOWN DivisionDOWN() {
-        Decimal_t::DOWN a = Decimal_t::DOWN::fromRaw(60);
-        Decimal_t::DOWN b = Decimal_t::DOWN::fromRaw(20);
+    Decimal_T::DOWN DivisionDOWN() {
+        Decimal_T::DOWN a = Decimal_T::DOWN::FromRaw(60);
+        Decimal_T::DOWN b = Decimal_T::DOWN::FromRaw(20);
         return a / b;
     }
 
-    Decimal_t::NEAR DivisionNEAR() {
-        Decimal_t::NEAR a = Decimal_t::NEAR::fromRaw(60);
-        Decimal_t::NEAR b = Decimal_t::NEAR::fromRaw(20);
+    Decimal_T::NEAR DivisionNEAR() {
+        Decimal_T::NEAR a = Decimal_T::NEAR::FromRaw(60);
+        Decimal_T::NEAR b = Decimal_T::NEAR::FromRaw(20);
         return a / b;
     }
 
     void CompoundAddition() {
-        Decimal_t::DOWN a = Decimal_t::DOWN::fromRaw(20);
-        Decimal_t::DOWN b = Decimal_t::DOWN::fromRaw(30);
+        Decimal_T::DOWN a = Decimal_T::DOWN::FromRaw(20);
+        Decimal_T::DOWN b = Decimal_T::DOWN::FromRaw(30);
         a += b;
     }
 
     void CompoundSubtraction() {
-        Decimal_t::NEAR a = Decimal_t::NEAR::fromRaw(50);
-        Decimal_t::NEAR b = Decimal_t::NEAR::fromRaw(20);
+        Decimal_T::NEAR a = Decimal_T::NEAR::FromRaw(50);
+        Decimal_T::NEAR b = Decimal_T::NEAR::FromRaw(20);
         a -= b;
     }
 
     void CompoundMultiplication() {
-        Decimal_t::UP a = Decimal_t::UP::fromRaw(20);
-        Decimal_t::UP b = Decimal_t::UP::fromRaw(30);
+        Decimal_T::UP a = Decimal_T::UP::FromRaw(20);
+        Decimal_T::UP b = Decimal_T::UP::FromRaw(30);
         a *= b;
     }
 
     void CompoundDivisionUP() {
-        Decimal_t::UP a = Decimal_t::UP::fromRaw(60);
-        Decimal_t::UP b = Decimal_t::UP::fromRaw(20);
+        Decimal_T::UP a = Decimal_T::UP::FromRaw(60);
+        Decimal_T::UP b = Decimal_T::UP::FromRaw(20);
         a /= b;
     }
 
     void CompoundDivisionDOWN() {
-        Decimal_t::DOWN a = Decimal_t::DOWN::fromRaw(60);
-        Decimal_t::DOWN b = Decimal_t::DOWN::fromRaw(20);
+        Decimal_T::DOWN a = Decimal_T::DOWN::FromRaw(60);
+        Decimal_T::DOWN b = Decimal_T::DOWN::FromRaw(20);
         a /= b;
     }
 
     void CompoundDivisionNEAR() {
-        Decimal_t::NEAR a = Decimal_t::NEAR::fromRaw(60);
-        Decimal_t::NEAR b = Decimal_t::NEAR::fromRaw(20);
+        Decimal_T::NEAR a = Decimal_T::NEAR::FromRaw(60);
+        Decimal_T::NEAR b = Decimal_T::NEAR::FromRaw(20);
         a /= b;
     }
 
     bool Comparison() {
-        Decimal_t::NEAR a = Decimal_t::NEAR::fromRaw(20);
-        Decimal_t::NEAR b = Decimal_t::NEAR::fromRaw(30);
+        Decimal_T::NEAR a = Decimal_T::NEAR::FromRaw(20);
+        Decimal_T::NEAR b = Decimal_T::NEAR::FromRaw(30);
         bool r1 = a == b;
         bool r2 = a != b;
         bool r3 = a < b;
@@ -89,95 +89,95 @@ namespace BM_Decimal64 {
         return r1 && r2 && r3 && r4 && r5 && r6;
     }
 
-    static void Decimal_Addition(benchmark::State& state) {
+    static void DecimalAddition(benchmark::State& state) {
         for (auto _ : state) {
             benchmark::DoNotOptimize(Addition());
         }
     }
 
-    static void Decimal_Subtraction(benchmark::State& state) {
+    static void DecimalSubtraction(benchmark::State& state) {
         for (auto _ : state) {
             benchmark::DoNotOptimize(Subtraction());
         }
     }
 
-    static void Decimal_Multiplication(benchmark::State& state) {
+    static void DecimalMultiplication(benchmark::State& state) {
         for (auto _ : state) {
             benchmark::DoNotOptimize(Multiplication());
         }
     }
 
-    static void Decimal_DivisionUP(benchmark::State& state) {
+    static void DecimalDivisionUP(benchmark::State& state) {
         for (auto _ : state) {
             benchmark::DoNotOptimize(DivisionUP());
         }
     }
 
-    static void Decimal_DivisionDOWN(benchmark::State& state) {
+    static void DecimalDivisionDOWN(benchmark::State& state) {
         for (auto _ : state) {
             benchmark::DoNotOptimize(DivisionDOWN());
         }
     }
 
-    static void Decimal_DivisionNEAR(benchmark::State& state) {
+    static void DecimalDivisionNEAR(benchmark::State& state) {
         for (auto _ : state) {
             benchmark::DoNotOptimize(DivisionNEAR());
         }
     }
 
-    static void Decimal_CompoundAddition(benchmark::State& state) {
+    static void DecimalCompoundAddition(benchmark::State& state) {
         for (auto _ : state) {
             CompoundAddition();
         }
     }
 
-    static void Decimal_CompoundSubtraction(benchmark::State& state) {
+    static void DecimalCompoundSubtraction(benchmark::State& state) {
         for (auto _ : state) {
             CompoundSubtraction();
         }
     }
 
-    static void Decimal_CompoundMultiplication(benchmark::State& state) {
+    static void DecimalCompoundMultiplication(benchmark::State& state) {
         for (auto _ : state) {
             CompoundMultiplication();
         }
     }
 
-    static void Decimal_CompoundDivisionUP(benchmark::State& state) {
+    static void DecimalCompoundDivisionUP(benchmark::State& state) {
         for (auto _ : state) {
             CompoundDivisionUP();
         }
     }
 
-    static void Decimal_CompoundDivisionDOWN(benchmark::State& state) {
+    static void DecimalCompoundDivisionDOWN(benchmark::State& state) {
         for (auto _ : state) {
             CompoundDivisionDOWN();
         }
     }
 
-    static void Decimal_CompoundDivisionNEAR(benchmark::State& state) {
+    static void DecimalCompoundDivisionNEAR(benchmark::State& state) {
         for (auto _ : state) {
             CompoundDivisionNEAR();
         }
     }
 
-    static void Decimal_Comparison(benchmark::State& state) {
+    static void DecimalComparison(benchmark::State& state) {
         for (auto _ : state) {
             benchmark::DoNotOptimize(Comparison());
         }
     }
 
-    BENCHMARK(Decimal_Addition);
-    BENCHMARK(Decimal_Subtraction);
-    BENCHMARK(Decimal_Multiplication);
-    BENCHMARK(Decimal_DivisionUP);
-    BENCHMARK(Decimal_DivisionDOWN);
-    BENCHMARK(Decimal_DivisionNEAR);
-    BENCHMARK(Decimal_CompoundAddition);
-    BENCHMARK(Decimal_CompoundSubtraction);
-    BENCHMARK(Decimal_CompoundMultiplication);
-    BENCHMARK(Decimal_CompoundDivisionUP);
-    BENCHMARK(Decimal_CompoundDivisionDOWN);
-    BENCHMARK(Decimal_CompoundDivisionNEAR);
-    BENCHMARK(Decimal_Comparison);
+    BENCHMARK(DecimalAddition);
+    BENCHMARK(DecimalSubtraction);
+    BENCHMARK(DecimalMultiplication);
+    BENCHMARK(DecimalDivisionUP);
+    BENCHMARK(DecimalDivisionDOWN);
+    BENCHMARK(DecimalDivisionNEAR);
+    BENCHMARK(DecimalCompoundAddition);
+    BENCHMARK(DecimalCompoundSubtraction);
+    BENCHMARK(DecimalCompoundMultiplication);
+    BENCHMARK(DecimalCompoundDivisionUP);
+    BENCHMARK(DecimalCompoundDivisionDOWN);
+    BENCHMARK(DecimalCompoundDivisionNEAR);
+    BENCHMARK(DecimalComparison);
 }
