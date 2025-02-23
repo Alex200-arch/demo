@@ -3,7 +3,7 @@
 
 #include "decimal_base.hpp"
 
-using price_t = ShortDecimal<4>;
+
 
 
 

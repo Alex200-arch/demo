@@ -1,117 +1,117 @@
 #include <gtest/gtest.h>
 #include "../decimal_base.hpp"
 
-// ---------------------- ShortDecimal Tests ----------------------
+// ---------------------- Price Tests (Precision=4) ----------------------
 
-TEST(ShortDecimalTest, FromIntegerValid) {
-    auto sd1 = ShortDecimal<4>::FromInteger(123);
+TEST(PriceTest, FromIntegerValid) {
+    auto sd1 = Price<4>::FromInteger(123);
     EXPECT_EQ(sd1.GetRaw(), 1230000);
-    auto sd2 = ShortDecimal<4>::FromInteger(-123);
+    auto sd2 = Price<4>::FromInteger(-123);
     EXPECT_EQ(sd2.GetRaw(), -1230000);
 }
 
-TEST(ShortDecimalTest, FromIntegerOverflow) {
+TEST(PriceTest, FromIntegerOverflow) {
     int64_t max_int = INT64_MAX / 10000;
-    EXPECT_NO_THROW(ShortDecimal<4>::FromInteger(max_int));
+    EXPECT_NO_THROW(Price<4>::FromInteger(max_int));
     int64_t overflow_max_int = max_int + 1;
-    EXPECT_THROW(ShortDecimal<4>::FromInteger(overflow_max_int), std::overflow_error);
+    EXPECT_THROW(Price<4>::FromInteger(overflow_max_int), std::overflow_error);
     int64_t min_int = INT64_MIN / 10000;
-    EXPECT_NO_THROW(ShortDecimal<4>::FromInteger(min_int));
+    EXPECT_NO_THROW(Price<4>::FromInteger(min_int));
     int64_t overflow_min_int = min_int -1;
-    EXPECT_THROW(ShortDecimal<4>::FromInteger(overflow_min_int), std::overflow_error);
+    EXPECT_THROW(Price<4>::FromInteger(overflow_min_int), std::overflow_error);
 }
 
-TEST(ShortDecimalTest, FromDoubleValid) {
-    auto sd1 = ShortDecimal<4>::FromDouble(123.4567);
+TEST(PriceTest, FromDoubleValid) {
+    auto sd1 = Price<4>::FromDouble(123.4567);
     EXPECT_EQ(sd1.GetRaw(), 1234567);
-    auto sd2= ShortDecimal<4>::FromDouble(-123.4567);
+    auto sd2= Price<4>::FromDouble(-123.4567);
     EXPECT_EQ(sd2.GetRaw(), -1234567);
 }
 
-TEST(ShortDecimalTest, FromDoubleOverflow) {
+TEST(PriceTest, FromDoubleOverflow) {
     double overflow_double1 = static_cast<double>(INT64_MAX) + 1e10;
-    EXPECT_THROW(ShortDecimal<4>::FromDouble(overflow_double1), std::overflow_error);
+    EXPECT_THROW(Price<4>::FromDouble(overflow_double1), std::overflow_error);
     double overflow_double2 = static_cast<double>(INT64_MIN) - 1e10;
-    EXPECT_THROW(ShortDecimal<4>::FromDouble(overflow_double2), std::overflow_error);
+    EXPECT_THROW(Price<4>::FromDouble(overflow_double2), std::overflow_error);
 }
 
-TEST(ShortDecimalTest, FromStringValid) {
-    auto sd1 = ShortDecimal<4>::FromString("123.4567");
+TEST(PriceTest, FromStringValid) {
+    auto sd1 = Price<4>::FromString("123.4567");
     EXPECT_EQ(sd1.GetRaw(), 1234567);
-    auto sd2 = ShortDecimal<4>::FromString("+123.0567");
+    auto sd2 = Price<4>::FromString("+123.0567");
     EXPECT_EQ(sd2.GetRaw(), 1230567);
-    auto sd3 = ShortDecimal<4>::FromString("+123.4");
+    auto sd3 = Price<4>::FromString("+123.4");
     EXPECT_EQ(sd3.GetRaw(), 1234000);
-    auto sd_neg = ShortDecimal<4>::FromString("-123.4567");
+    auto sd_neg = Price<4>::FromString("-123.4567");
     EXPECT_EQ(sd_neg.GetRaw(), -1234567);
-    auto sd_neg2 = ShortDecimal<4>::FromString("-123.45");
+    auto sd_neg2 = Price<4>::FromString("-123.45");
     EXPECT_EQ(sd_neg2.GetRaw(), -1234500);
-    auto sd_neg3 = ShortDecimal<4>::FromString("-123.0567");
+    auto sd_neg3 = Price<4>::FromString("-123.0567");
     EXPECT_EQ(sd_neg3.GetRaw(), -1230567);
 }
 
-TEST(ShortDecimalTest, FromStringInvalidDecimal) {
-    EXPECT_THROW(ShortDecimal<4>::FromString("123.45678"), std::invalid_argument);
-    EXPECT_THROW(ShortDecimal<4>::FromString("12a.45"), std::invalid_argument);
+TEST(PriceTest, FromStringInvalidDecimal) {
+    EXPECT_THROW(Price<4>::FromString("123.45678"), std::invalid_argument);
+    EXPECT_THROW(Price<4>::FromString("12a.45"), std::invalid_argument);
 }
 
-TEST(ShortDecimalTest, FromStringEdgeCases) {
-    auto sd1 = ShortDecimal<4>::FromString("0.0000");
+TEST(PriceTest, FromStringEdgeCases) {
+    auto sd1 = Price<4>::FromString("0.0000");
     EXPECT_EQ(sd1.GetRaw(), 0);
-    auto sd2 = ShortDecimal<4>::FromString("922337203685477.5807");
+    auto sd2 = Price<4>::FromString("922337203685477.5807");
     EXPECT_EQ(sd2.GetRaw(), INT64_MAX);
-    auto sd3 = ShortDecimal<4>::FromString("-922337203685477.5807");
+    auto sd3 = Price<4>::FromString("-922337203685477.5807");
     EXPECT_EQ(sd3.GetRaw(), INT64_MIN+1);
 }
 
-TEST(ShortDecimalTest, ToString) {
-    auto sd1 = ShortDecimal<4>::FromRaw(1234567);
+TEST(PriceTest, ToString) {
+    auto sd1 = Price<4>::FromRaw(1234567);
     EXPECT_EQ(sd1.ToString(), "123.4567");
-    auto sd2 = ShortDecimal<4>::FromRaw(1230067);
+    auto sd2 = Price<4>::FromRaw(1230067);
     EXPECT_EQ(sd2.ToString(), "123.0067");
-    auto sd_neg1 = ShortDecimal<4>::FromRaw(-1234567);
+    auto sd_neg1 = Price<4>::FromRaw(-1234567);
     EXPECT_EQ(sd_neg1.ToString(), "-123.4567");
-    auto sd_neg2 = ShortDecimal<4>::FromRaw(-1230567);
+    auto sd_neg2 = Price<4>::FromRaw(-1230567);
     EXPECT_EQ(sd_neg2.ToString(), "-123.0567");
 }
 
-TEST(ShortDecimalTest, Addition) {
-    auto a = ShortDecimal<4>::FromRaw(10000);
-    auto b = ShortDecimal<4>::FromRaw(20000);
+TEST(PriceTest, Addition) {
+    auto a = Price<4>::FromRaw(10000);
+    auto b = Price<4>::FromRaw(20000);
     auto c = a + b;
     EXPECT_EQ(c.GetRaw(), 30000);
 }
 
-TEST(ShortDecimalTest, AdditionOverflow) {
-    auto a = ShortDecimal<4>::FromRaw(INT64_MAX);
-    auto b = ShortDecimal<4>::FromRaw(1);
+TEST(PriceTest, AdditionOverflow) {
+    auto a = Price<4>::FromRaw(INT64_MAX);
+    auto b = Price<4>::FromRaw(1);
     EXPECT_THROW(a + b, std::overflow_error);
 }
 
-TEST(ShortDecimalTest, Subtraction) {
-    auto a = ShortDecimal<4>::FromRaw(30000);
-    auto b = ShortDecimal<4>::FromRaw(20000);
+TEST(PriceTest, Subtraction) {
+    auto a = Price<4>::FromRaw(30000);
+    auto b = Price<4>::FromRaw(20000);
     auto c = a - b;
     EXPECT_EQ(c.GetRaw(), 10000);
 }
 
-TEST(ShortDecimalTest, SubtractionUnderflow) {
-    auto a = ShortDecimal<4>::FromRaw(INT64_MIN);
-    auto b = ShortDecimal<4>::FromRaw(1);
+TEST(PriceTest, SubtractionUnderflow) {
+    auto a = Price<4>::FromRaw(INT64_MIN);
+    auto b = Price<4>::FromRaw(1);
     EXPECT_THROW(a - b, std::overflow_error);
 }
 
-TEST(ShortDecimalTest, CompoundOperators) {
-    auto a = ShortDecimal<4>::FromRaw(10000);
-    a += ShortDecimal<4>::FromRaw(20000);
+TEST(PriceTest, CompoundOperators) {
+    auto a = Price<4>::FromRaw(10000);
+    a += Price<4>::FromRaw(20000);
     EXPECT_EQ(a.GetRaw(), 30000);
-    a -= ShortDecimal<4>::FromRaw(10000);
+    a -= Price<4>::FromRaw(10000);
     EXPECT_EQ(a.GetRaw(), 20000);
 }
 
-TEST(ShortDecimalTest, ComparisonOperators) {
-    auto a = ShortDecimal<4>::FromRaw(10000);
-    auto b = ShortDecimal<4>::FromRaw(20000);
+TEST(PriceTest, ComparisonOperators) {
+    auto a = Price<4>::FromRaw(10000);
+    auto b = Price<4>::FromRaw(20000);
     EXPECT_TRUE(a < b);
     EXPECT_TRUE(a <= b);
     EXPECT_FALSE(a == b);
@@ -229,75 +229,75 @@ TEST(LongDecimalTest, ComparisonOperators) {
     EXPECT_TRUE(c > b);
 }
 
-// ---------------------- ShortDecimal<0> Tests ----------------------
+// ---------------------- Price<0> Tests ----------------------
 
-TEST(ShortDecimal0Test, FromIntegerValid) {
-    auto sd = ShortDecimal<0>::FromInteger(123);
+TEST(PriceTest0Test, FromIntegerValid) {
+    auto sd = Price<0>::FromInteger(123);
     EXPECT_EQ(sd.GetRaw(), 123);
-    auto sd_max = ShortDecimal<0>::FromInteger(INT64_MAX);
+    auto sd_max = Price<0>::FromInteger(INT64_MAX);
     EXPECT_EQ(sd_max.GetRaw(), INT64_MAX);
 }
 
-TEST(ShortDecimal0Test, FromDoubleValid) {
-    auto sd1 = ShortDecimal<0>::FromDouble(123.0);
+TEST(PriceTest0Test, FromDoubleValid) {
+    auto sd1 = Price<0>::FromDouble(123.0);
     EXPECT_EQ(sd1.GetRaw(), 123);
-    auto sd2 = ShortDecimal<0>::FromDouble(123.999);
+    auto sd2 = Price<0>::FromDouble(123.999);
     EXPECT_EQ(sd2.GetRaw(), 123);
 }
 
-TEST(ShortDecimal0Test, FromDoubleOverflow) {
+TEST(PriceTest0Test, FromDoubleOverflow) {
     double overflow = static_cast<double>(INT64_MAX) * 2;
-    EXPECT_THROW(ShortDecimal<0>::FromDouble(overflow), std::overflow_error);
+    EXPECT_THROW(Price<0>::FromDouble(overflow), std::overflow_error);
 }
 
-TEST(ShortDecimal0Test, FromStringValid) {
-    auto sd1 = ShortDecimal<0>::FromString("123");
+TEST(PriceTest0Test, FromStringValid) {
+    auto sd1 = Price<0>::FromString("123");
     EXPECT_EQ(sd1.GetRaw(), 123);
-    auto sd2 = ShortDecimal<0>::FromString("-456");
+    auto sd2 = Price<0>::FromString("-456");
     EXPECT_EQ(sd2.GetRaw(), -456);
 }
 
-TEST(ShortDecimal0Test, FromStringInvalid) {
-    EXPECT_THROW(ShortDecimal<0>::FromString("123.4"), std::invalid_argument);
-    EXPECT_THROW(ShortDecimal<0>::FromString("12a"), std::invalid_argument);
+TEST(PriceTest0Test, FromStringInvalid) {
+    EXPECT_THROW(Price<0>::FromString("123.4"), std::invalid_argument);
+    EXPECT_THROW(Price<0>::FromString("12a"), std::invalid_argument);
 }
 
-TEST(ShortDecimal0Test, ToString) {
-    auto sd1 = ShortDecimal<0>::FromRaw(123);
+TEST(PriceTest0Test, ToString) {
+    auto sd1 = Price<0>::FromRaw(123);
     EXPECT_EQ(sd1.ToString(), "123");
-    auto sd2 = ShortDecimal<0>::FromRaw(-456);
+    auto sd2 = Price<0>::FromRaw(-456);
     EXPECT_EQ(sd2.ToString(), "-456");
 }
 
-TEST(ShortDecimal0Test, Addition) {
-    auto a = ShortDecimal<0>::FromInteger(100);
-    auto b = ShortDecimal<0>::FromInteger(200);
+TEST(PriceTest0Test, Addition) {
+    auto a = Price<0>::FromInteger(100);
+    auto b = Price<0>::FromInteger(200);
     auto c = a + b;
     EXPECT_EQ(c.GetRaw(), 300);
 }
 
-TEST(ShortDecimal0Test, AdditionOverflow) {
-    auto a = ShortDecimal<0>::FromRaw(INT64_MAX);
-    auto b = ShortDecimal<0>::FromRaw(1);
+TEST(PriceTest0Test, AdditionOverflow) {
+    auto a = Price<0>::FromRaw(INT64_MAX);
+    auto b = Price<0>::FromRaw(1);
     EXPECT_THROW(a + b, std::overflow_error);
 }
 
-TEST(ShortDecimal0Test, Subtraction) {
-    auto a = ShortDecimal<0>::FromRaw(500);
-    auto b = ShortDecimal<0>::FromRaw(200);
+TEST(PriceTest0Test, Subtraction) {
+    auto a = Price<0>::FromRaw(500);
+    auto b = Price<0>::FromRaw(200);
     auto c = a - b;
     EXPECT_EQ(c.GetRaw(), 300);
 }
 
-TEST(ShortDecimal0Test, SubtractionUnderflow) {
-    auto a = ShortDecimal<0>::FromRaw(INT64_MIN);
-    auto b = ShortDecimal<0>::FromRaw(1);
+TEST(PriceTest0Test, SubtractionUnderflow) {
+    auto a = Price<0>::FromRaw(INT64_MIN);
+    auto b = Price<0>::FromRaw(1);
     EXPECT_THROW(a - b, std::overflow_error);
 }
 
-TEST(ShortDecimal0Test, Comparison) {
-    auto a = ShortDecimal<0>::FromRaw(100);
-    auto b = ShortDecimal<0>::FromRaw(200);
+TEST(PriceTest0Test, Comparison) {
+    auto a = Price<0>::FromRaw(100);
+    auto b = Price<0>::FromRaw(200);
     EXPECT_TRUE(a < b);
     EXPECT_TRUE(a != b);
     EXPECT_FALSE(a == b);
@@ -376,4 +376,92 @@ TEST(LongDecimal0Test, Comparison) {
     EXPECT_TRUE(a < b);
     EXPECT_TRUE(a != b);
     EXPECT_FALSE(a == b);
+}
+
+// ---------------------- Price ----------------------
+TEST(PriceTest, MultiplyInteger) {
+    auto a = Price<4>::FromDouble(12.34);
+    auto b = a * 3;
+    EXPECT_EQ(b.ToDouble(), 37.02);
+    auto c = 3 * a;
+    EXPECT_EQ(c.ToDouble(), 37.02);
+}
+
+TEST(PriceTest, MultiplyIntegerOverflow) {
+    auto a = Price<0>::FromRaw(INT64_MAX);
+    EXPECT_THROW(a * 2, std::overflow_error);
+}
+
+// ---------------------- LongDecimal ----------------------
+TEST(LongDecimalTest, MultiplyInteger) {
+    auto a = LongDecimal<2>::FromRaw({12, 34});
+    auto b = a * 3;
+    EXPECT_EQ(b.ToString(), "37.02");
+    auto c = 3 * a;
+    EXPECT_EQ(c.ToString(), "37.02");
+}
+
+TEST(LongDecimalTest, MultiplyNegative) {
+    auto a = LongDecimal<2>::FromRaw({-5, 25}); 
+    auto b = a * 4;
+    EXPECT_EQ(b.ToString(), "-21.00");
+}
+
+TEST(LongDecimalTest, PrecisionZeroMultiply) {
+    auto a = LongDecimal<0>::FromInteger(100);
+    auto b = a * 3;
+    EXPECT_EQ(b.ToString(), "300");
+}
+
+TEST(LongDecimalTest, MultiplyCarryOverflow) {
+    auto a = LongDecimal<2>::FromRaw({INT64_MAX, 99});
+    EXPECT_THROW(a * 2, std::overflow_error);
+}
+
+TEST(LongDecimalTest, MultiplyDecimalOverflow) {
+    auto a = LongDecimal<2>::FromRaw({0, 50});
+    auto b = a * 300;
+    EXPECT_EQ(b.ToString(), "150.00");
+}
+
+// ---------------------- Price Multiplication ----------------------
+TEST(PriceTest, MultiplyUpRounding) {
+    Price<2> p = Price<2>::FromRaw(123);  // 1.23
+    ShortQuantity<3> q = ShortQuantity<3>::FromRaw(4567);  // 4.567
+    auto result = operator*<3, RoundModel::UP>(p, q);
+    EXPECT_EQ(result.GetRaw(), 562);  // 1.23 * 4.567 = 5.61741 → UP → 5.62
+}
+
+TEST(PriceTest, MultiplyUpRoundingNegative) {
+    Price<2> p = Price<2>::FromRaw(-123); // -1.23
+    ShortQuantity<3> q = ShortQuantity<3>::FromRaw(4567); // 4.567
+    auto result = operator*<3, RoundModel::UP>(p, q);
+    EXPECT_EQ(result.GetRaw(), -562); // -1.23 * 4.567 = -5.61741 → UP → -5.62
+}
+
+TEST(PriceTest, MultiplyNearRoundingHalf) {
+    Price<2> p = Price<2>::FromRaw(123); // 1.23
+    ShortQuantity<3> q = ShortQuantity<3>::FromRaw(2500); // 2.500
+    auto result = operator*<3, RoundModel::NEAR>(p, q);
+    EXPECT_EQ(result.GetRaw(), 308); // 1.23 * 2.5 = 3.075 → NEAR → 3.08
+}
+
+TEST(PriceTest, MultiplyNearRoundingLessThanHalf) {
+    Price<2> p = Price<2>::FromRaw(123); // 1.23
+    ShortQuantity<3> q = ShortQuantity<3>::FromRaw(2499); // 2.499
+    auto result = operator*<3, RoundModel::NEAR>(p, q);
+    EXPECT_EQ(result.GetRaw(), 307); // 1.23 *2.499 = 3.07377 → NEAR → 3.07
+}
+
+TEST(PriceTest, MultiplyDownRounding) {
+    Price<2> p = Price<2>::FromRaw(123);
+    ShortQuantity<3> q = ShortQuantity<3>::FromRaw(4567);
+    auto result = operator*<3, RoundModel::DOWN>(p, q);
+    EXPECT_EQ(result.GetRaw(), 561); // 1.23 * 4.567 = 5.61741 → DOWN → 5.61
+}
+
+TEST(PriceTest, MultiplySQOverflow) {
+    Price<2> p = Price<2>::FromRaw(INT64_MAX);
+    ShortQuantity<0> q = ShortQuantity<0>::FromRaw(2); // Integer 2
+    EXPECT_THROW((operator*<0, RoundModel::DOWN>(p, q)), std::overflow_error);
 }
