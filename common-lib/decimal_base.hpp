@@ -190,13 +190,13 @@ public:
     Derived& operator+=(const Derived& rhs) { 
         CheckAddOverflow(value, rhs.value);
         value += rhs.value;
-        return static_cast<Derived&>(*this);;
+        return static_cast<Derived&>(*this);
     }
 
     Derived& operator-=(const Derived& rhs) { 
         CheckSubOverflow(value, rhs.value);
         value -= rhs.value;
-        return static_cast<Derived&>(*this);;
+        return static_cast<Derived&>(*this);
     }
 
     bool operator==(const Derived& rhs) const { return value == rhs.value; }
@@ -207,41 +207,46 @@ public:
     bool operator>=(const Derived& rhs) const { return value >= rhs.value; }
 };
 
-template <int Precision>
+
+struct LongDecimalRaw {
+    int64_t integer;
+    int64_t decimal;
+};
+
+template <int Precision, typename Derived>
 class LongDecimal {
-private:
-    struct internal_t {
-        int64_t integer;
-        int64_t decimal;
-    };
-public:
-    typedef internal_t raw_type;
-private:
+protected:
     static_assert(Precision >= 0 && Precision <= 18, "Precision must be between 0 and 18.");
     static constexpr int64_t FACTOR = PowerOfTen<Precision>::value;
-    raw_type value;
+    LongDecimalRaw value;
 
-    explicit LongDecimal(raw_type raw_value)
+    explicit LongDecimal(LongDecimalRaw raw_value)
         : value(raw_value) {
-        if (value.decimal < 0 || value.decimal >= FACTOR) {
+        if (value.decimal <= -FACTOR || value.decimal >= FACTOR) {
             throw std::overflow_error("Decimal part overflow");
+        }
+        if ((value.integer != 0) && (value.decimal != 0)) {
+            bool same_sign = (value.integer > 0) == (value.decimal > 0);
+            if (!same_sign) {
+                throw std::invalid_argument("Positive or negative signs are not same");
+            }
         }
     }
 
 public:
-    static LongDecimal FromRaw(int64_t integer_part, int64_t decimal_part) {
-        return LongDecimal({integer_part, decimal_part});
+    static Derived FromRaw(int64_t integer_part, int64_t decimal_part) {
+        return Derived({integer_part, decimal_part});
     }
 
-    static LongDecimal FromRaw(raw_type raw_value) {
-        return LongDecimal(raw_value);
+    static Derived FromRaw(LongDecimalRaw raw_value) {
+        return Derived(raw_value);
     }
 
-    static LongDecimal FromInteger(int64_t value) {
-        return LongDecimal({value, 0});
+    static Derived FromInteger(int64_t value) {
+        return Derived({value, 0});
     }
 
-    static LongDecimal FromDouble(double value) {
+    static Derived FromDouble(double value) {
         static constexpr __int128_t INT128_MAX = (static_cast<__int128_t>(0x7fffffffffffffff) << 64) | 0xffffffffffffffff;
         static constexpr __int128_t INT128_MIN = (__int128(1) << 127);
         double scaled = value * FACTOR;
@@ -256,10 +261,10 @@ public:
         }
         int64_t integer = static_cast<int64_t>(integer_128);
         int64_t decimal = static_cast<int64_t>(decimal_128);
-        return LongDecimal({integer, decimal >= 0 ? decimal : -decimal});
+        return Derived({integer, decimal});
     }
 
-    static LongDecimal FromString(const std::string& str) {
+    static Derived FromString(const std::string& str) {
         bool negative = false;
         size_t start = 0;
         if (!str.empty()) {
@@ -322,10 +327,10 @@ public:
 
         int64_t dec_val = dec_part_str.empty() ? 0 : std::stoll(dec_part_str);
 
-        return LongDecimal({negative ? -int_val : int_val, dec_val});
+        return Derived({negative ? -int_val : int_val, negative ? -dec_val : dec_val});
     }
 
-    raw_type GetRaw() const {
+    LongDecimalRaw GetRaw() const {
         return value;
     }
 
@@ -334,40 +339,60 @@ public:
     }
 
     std::string ToString() const {
-        std::stringstream oss;
-        oss << value.integer;
+        bool negative = (value.integer < 0) || (value.integer == 0 && value.decimal < 0);
+        uint64_t abs_integer = value.integer >= 0 ? value.integer : -value.integer;
+        uint64_t abs_decimal = value.decimal >= 0 ? value.decimal : -value.decimal;
+    
+        std::ostringstream oss;
+        if (negative) {
+            oss << "-";
+        }
+        oss << abs_integer;
         if constexpr (Precision > 0) {
             oss << "."
-                << std::setw(Precision) << std::setfill('0') << value.decimal;
+                << std::setw(Precision) << std::setfill('0') 
+                << abs_decimal;
         }
         return oss.str();
     }
 
-    LongDecimal operator+(const LongDecimal& rhs) const {
+    Derived operator+(const Derived& rhs) const {
         int64_t sum_int;
         if (__builtin_add_overflow(value.integer, rhs.value.integer, &sum_int)) {
             throw std::overflow_error("Integer addition overflow");
         }
-
+    
         int64_t sum_dec = value.decimal + rhs.value.decimal;
         int64_t carry = sum_dec / FACTOR;
         sum_dec %= FACTOR;
-
-        if (carry > 0) {
+    
+        if (carry != 0) {
             if (__builtin_add_overflow(sum_int, carry, &sum_int)) {
                 throw std::overflow_error("Carry overflow in addition");
             }
         }
-
-        return LongDecimal({sum_int, sum_dec});
+    
+        if (sum_int != 0 && sum_dec != 0) {
+            if ((sum_int > 0) != (sum_dec > 0)) {
+                if (sum_int > 0) {
+                    sum_int -= 1;
+                    sum_dec += FACTOR;
+                } else {
+                    sum_int += 1;
+                    sum_dec -= FACTOR;
+                }
+            }
+        }
+    
+        return Derived({sum_int, sum_dec});
     }
 
-    LongDecimal operator-(const LongDecimal& rhs) const {
+    Derived operator-(const Derived& rhs) const {
         int64_t diff_int;
         if (__builtin_sub_overflow(value.integer, rhs.value.integer, &diff_int)) {
             throw std::overflow_error("Integer subtraction overflow");
         }
-
+    
         int64_t diff_dec = value.decimal - rhs.value.decimal;
         if (diff_dec < 0) {
             diff_dec += FACTOR;
@@ -375,72 +400,95 @@ public:
                 throw std::overflow_error("Borrow overflow in subtraction");
             }
         }
-
-        return LongDecimal({diff_int, diff_dec});
+    
+        if (diff_int != 0 && diff_dec != 0) {
+            if ((diff_int > 0) != (diff_dec > 0)) {
+                if (diff_int > 0) {
+                    diff_int -= 1;
+                    diff_dec += FACTOR;
+                } else {
+                    diff_int += 1;
+                    diff_dec -= FACTOR;
+                }
+            }
+        }
+    
+        return Derived({diff_int, diff_dec});
     }
 
-    LongDecimal operator*(int64_t k) const {
+    Derived operator*(int64_t k) const {
         if constexpr (Precision == 0) {
             int64_t new_integer;
             if (__builtin_mul_overflow(value.integer, k, &new_integer)) {
-                throw std::overflow_error("LongDecimal integer multiplication overflow");
+                throw std::overflow_error("Integer multiplication overflow");
             }
-            return LongDecimal({new_integer, 0});
+            return Derived({new_integer, 0});
         } else {
             int64_t new_integer;
             if (__builtin_mul_overflow(value.integer, k, &new_integer)) {
-                throw std::overflow_error("LongDecimal integer multiplication overflow");
+                throw std::overflow_error("Integer multiplication overflow");
             }
-
-            k = k >= 0 ? k : -k;
+    
             __int128_t decimal_product = static_cast<__int128_t>(value.decimal) * k;
             __int128_t carry = decimal_product / FACTOR;
             __int128_t new_decimal = decimal_product % FACTOR;
-
+    
             if (carry != 0) {
                 int64_t carry64 = static_cast<int64_t>(carry);
-                if ((new_integer > 0 && new_integer > INT64_MAX - carry64) ||
-                    (new_integer < 0 && new_integer < INT64_MIN + carry64)) {
-                    throw std::overflow_error("LongDecimal carry overflow");
+                if (__builtin_add_overflow(new_integer, carry64, &new_integer)) {
+                    throw std::overflow_error("Carry overflow in multiplication");
                 }
-                new_integer += (new_integer >= 0) ? carry64 : -carry64;
             }
-
-            return LongDecimal({new_integer, static_cast<int64_t>(new_decimal)});
+    
+            if (new_integer != 0 && new_decimal != 0) {
+                if ((new_integer > 0) != (static_cast<int64_t>(new_decimal) > 0)) {
+                    if (new_integer > 0) {
+                        new_integer -= 1;
+                        new_decimal += FACTOR;
+                    } else {
+                        new_integer += 1;
+                        new_decimal -= FACTOR;
+                    }
+                }
+            }
+    
+            return Derived({new_integer, static_cast<int64_t>(new_decimal)});
         }
     }
 
-    friend LongDecimal operator*(const int64_t k, const LongDecimal& ld) {
+    friend Derived operator*(const int64_t k, const Derived& ld) {
         return ld * k;
     }
 
-    LongDecimal& operator+=(const LongDecimal& rhs) {
+    Derived& operator+=(const Derived& rhs) {
         *this = *this + rhs;
-        return *this;
+        return static_cast<Derived&>(*this);
     }
 
-    LongDecimal& operator-=(const LongDecimal& rhs) {
+    Derived& operator-=(const Derived& rhs) {
         *this = *this - rhs;
-        return *this;
+        return static_cast<Derived&>(*this);
     }
 
-    bool operator==(const LongDecimal& rhs) const { 
+    bool operator==(const Derived& rhs) const { 
         return value.integer == rhs.value.integer && value.decimal == rhs.value.decimal;
     }
-    bool operator!=(const LongDecimal& rhs) const { return !(*this == rhs); }
-    bool operator<(const LongDecimal& rhs) const {
+    bool operator!=(const Derived& rhs) const { return !(*this == rhs); }
+    bool operator<(const Derived& rhs) const {
         if (value.integer != rhs.value.integer) {
             return value.integer < rhs.value.integer;
         }
         return value.decimal < rhs.value.decimal;
     }
-    bool operator<=(const LongDecimal& rhs) const { return *this < rhs || *this == rhs; }
-    bool operator>(const LongDecimal& rhs) const { return !(*this <= rhs); }
-    bool operator>=(const LongDecimal& rhs) const { return !(*this < rhs); }
+    bool operator<=(const Derived& rhs) const { return *this < rhs || *this == rhs; }
+    bool operator>(const Derived& rhs) const { return !(*this <= rhs); }
+    bool operator>=(const Derived& rhs) const { return !(*this < rhs); }
 };
 
-enum class RoundModel {
-    UP, DOWN, NEAR
+template<uint P>
+class Price : public ShortDecimal<P, Price<P>> {
+public:
+    explicit Price(int64_t raw_value) : ShortDecimal<P, Price>(raw_value) {}
 };
 
 template<uint P>
@@ -450,41 +498,136 @@ public:
 };
 
 template<uint P>
-class Price : public ShortDecimal<P, Price<P>> {
+class LongQuantity : public LongDecimal<P, LongQuantity<P>> {
 public:
-    explicit Price(int64_t raw_value) : ShortDecimal<P, Price>(raw_value) {}
-
-    template<uint SP, RoundModel RM>
-    friend Price operator*(const Price& px, const ShortQuantity<SP>& qty) {
-        int64_t price_raw = px.GetRaw();
-        int64_t qty_raw = qty.GetRaw();
-
-        __int128_t product = static_cast<__int128_t>(price_raw) * static_cast<__int128_t>(qty_raw);
-
-        if constexpr (SP > 0) {
-            if constexpr (RM == RoundModel::UP) {
-                static constexpr __int128_t adjust = PowerOfTen<SP>::value - PowerOfTen<SP - 1>::value;
-                product += (product > 0) ? adjust : -adjust;
-            } else if constexpr (RM == RoundModel::NEAR) {
-                static constexpr __int128_t adjust = PowerOfTen<SP>::value / 2;
-                product += (product > 0) ? adjust : -adjust;
-            }
-
-            product /= PowerOfTen<SP>::value;
-        }
-        
-        if (product > INT64_MAX || product < INT64_MIN) {
-            throw std::overflow_error("Multiplication result overflow");
-        }
-    
-        return Price::FromRaw(static_cast<int64_t>(product));
-    }
-
-    template<uint SP, RoundModel RM>
-    friend Price operator*(const ShortQuantity<SP>& qty, const Price& px) {
-        return px * qty;
-    }
+    explicit LongQuantity(LongDecimalRaw raw_value) : LongDecimal<P, LongQuantity>(raw_value) {}
 };
+
+// round tags
+struct RoundModelUP {};
+struct RoundModelDOWN {};
+struct RoundModelNEAR {};
+
+template<uint PP, uint SP>
+Price<PP> PxQ(const Price<PP>& px, const ShortQuantity<SP>& qty, RoundModelUP) {
+    int64_t price_raw = px.GetRaw();
+    int64_t qty_raw = qty.GetRaw();
+
+    __int128_t product = static_cast<__int128_t>(price_raw) * static_cast<__int128_t>(qty_raw);
+
+    if constexpr (SP > 0) {
+        static constexpr __int128_t adjust = PowerOfTen<SP>::value - PowerOfTen<SP - 1>::value;
+        product += (product > 0) ? adjust : -adjust;
+        product /= PowerOfTen<SP>::value;
+    }
+    
+    if (product > INT64_MAX || product < INT64_MIN) {
+        throw std::overflow_error("Multiplication result overflow");
+    }
+
+    return Price<PP>::FromRaw(static_cast<int64_t>(product));
+}
+
+template<uint PP, uint SP>
+Price<PP> PxQ(const Price<PP>& px, const ShortQuantity<SP>& qty, RoundModelDOWN) {
+    int64_t price_raw = px.GetRaw();
+    int64_t qty_raw = qty.GetRaw();
+
+    __int128_t product = static_cast<__int128_t>(price_raw) * static_cast<__int128_t>(qty_raw);
+
+    if constexpr (SP > 0) {
+        product /= PowerOfTen<SP>::value;
+    }
+    
+    if (product > INT64_MAX || product < INT64_MIN) {
+        throw std::overflow_error("Multiplication result overflow");
+    }
+
+    return Price<PP>::FromRaw(static_cast<int64_t>(product));
+}
+
+template<uint PP, uint SP>
+Price<PP> PxQ(const Price<PP>& px, const ShortQuantity<SP>& qty, RoundModelNEAR) {
+    int64_t price_raw = px.GetRaw();
+    int64_t qty_raw = qty.GetRaw();
+
+    __int128_t product = static_cast<__int128_t>(price_raw) * static_cast<__int128_t>(qty_raw);
+
+    if constexpr (SP > 0) {
+        static constexpr __int128_t adjust = PowerOfTen<SP>::value / 2;
+        product += (product > 0) ? adjust : -adjust;
+        product /= PowerOfTen<SP>::value;
+    }
+    
+    if (product > INT64_MAX || product < INT64_MIN) {
+        throw std::overflow_error("Multiplication result overflow");
+    }
+
+    return Price<PP>::FromRaw(static_cast<int64_t>(product));
+}
+
+template<uint PP, uint LP>
+Price<PP> PxQ(const Price<PP>& px, const LongQuantity<LP>& qty, RoundModelUP) {
+    int64_t price_raw = px.GetRaw();
+    LongDecimalRaw qty_raw = qty.GetRaw();
+    __int128_t quantity_total = static_cast<__int128_t>(qty_raw.integer) * PowerOfTen<LP>::value + qty_raw.decimal;
+    
+    __int128_t product = static_cast<__int128_t>(price_raw) * quantity_total;
+    
+    if constexpr (LP > 0) {
+        static constexpr __int128_t adjust = PowerOfTen<LP>::value - PowerOfTen<LP - 1>::value;
+        product += (product > 0) ? adjust : -adjust;
+        product /= PowerOfTen<LP>::value;
+    }
+    
+    if (product > INT64_MAX || product < INT64_MIN) {
+        throw std::overflow_error("Multiplication result overflow");
+    }
+    
+    return Price<PP>::FromRaw(static_cast<int64_t>(product));
+}
+
+template<uint PP, uint LP>
+Price<PP> PxQ(const Price<PP>& px, const LongQuantity<LP>& qty, RoundModelDOWN) {
+    int64_t price_raw = px.GetRaw();
+    LongDecimalRaw qty_raw = qty.GetRaw();
+    __int128_t quantity_total = static_cast<__int128_t>(qty_raw.integer) * PowerOfTen<LP>::value + qty_raw.decimal;
+    
+    __int128_t product = static_cast<__int128_t>(price_raw) * quantity_total;
+    
+    if constexpr (LP > 0) {
+        product /= PowerOfTen<LP>::value;
+    }
+    
+    if (product > INT64_MAX || product < INT64_MIN) {
+        throw std::overflow_error("Multiplication result overflow");
+    }
+
+    return Price<PP>::FromRaw(static_cast<int64_t>(product));
+}
+
+template<uint PP, uint LP>
+Price<PP> PxQ(const Price<PP>& px, const LongQuantity<LP>& qty, RoundModelNEAR) {
+    int64_t price_raw = px.GetRaw();
+    LongDecimalRaw qty_raw = qty.GetRaw();
+    __int128_t quantity_total = static_cast<__int128_t>(qty_raw.integer) * PowerOfTen<LP>::value + qty_raw.decimal;
+    
+    __int128_t product = static_cast<__int128_t>(price_raw) * quantity_total;
+    
+    if constexpr (LP > 0) {
+        static constexpr __int128_t adjust = PowerOfTen<LP>::value / 2;
+        product += (product > 0) ? adjust : -adjust;
+        product /= PowerOfTen<LP>::value;
+    }
+    
+    if (product > INT64_MAX || product < INT64_MIN) {
+        throw std::overflow_error("Multiplication result overflow");
+    }
+
+    return Price<PP>::FromRaw(static_cast<int64_t>(product));
+}
+
+
 
 
 #endif

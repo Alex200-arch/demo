@@ -1,10 +1,10 @@
 #include <iostream>
-#include "common-lib/types.hpp"
 
 int main() {
-    auto a = LongDecimal<18>::FromRaw({1,2});
-    std::cout << "a " << a.ToDouble() << "\n";
-    std::cout << "a " << a.ToString() << "\n";
+    int a = -9;
+    int b = 8;
+    bool same_sign = (a > 0 == b > 0);
+    std::cout << "same sign " << same_sign << "\n";
     return 0;
 }
 
