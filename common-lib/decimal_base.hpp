@@ -12,6 +12,16 @@ struct PowerOfTen<0> {
     static constexpr int64_t value = 1;
 };
 
+struct LongDecimalRaw {
+    int64_t integer;
+    int64_t decimal;
+};
+
+// round tags
+struct RoundModelUP {};
+struct RoundModelDOWN {};
+struct RoundModelNEAR {};
+
 /*
     ShortDecimal and LongDecimal
     Basic Function
@@ -147,13 +157,12 @@ public:
     }
 
     std::string ToString() const {
-        bool negative = (value < 0);
         uint64_t abs_raw = value >= 0 ? value : -value;
         uint64_t int_part = abs_raw / SCALING_FACTOR;
         uint64_t dec_part = abs_raw % SCALING_FACTOR;
 
         std::ostringstream oss;
-        if (negative) {
+        if (value < 0) {
             oss << "-";
         }
         oss << int_part;
@@ -187,6 +196,52 @@ public:
         return sd * k;
     }
 
+    Derived DivInt(const int64_t k, RoundModelUP) const {
+        if (k == 0) {
+            throw std::invalid_argument("Division by zero");
+        }
+
+        const bool same_sign = (value > 0) == (k > 0);
+        const __int128_t dividend = static_cast<__int128_t>(value);
+        const __int128_t adjusted = (10 * dividend) + (same_sign > 0 ? (9*k) : -(9*k));
+        __int128_t result =  adjusted / (10 * k);
+
+        if (result > INT64_MAX || result < INT64_MIN) {
+            throw std::overflow_error("Division overflow");
+        }
+        return Derived(static_cast<int64_t>(result));
+    }
+
+    Derived DivInt(const int64_t k, RoundModelDOWN) const {
+        if (k == 0) {
+            throw std::invalid_argument("Division by zero");
+        }
+
+        const __int128_t dividend = static_cast<__int128_t>(value);
+        __int128_t result = dividend / k;
+
+        if (result > INT64_MAX || result < INT64_MIN) {
+            throw std::overflow_error("Division overflow");
+        }
+        return Derived(static_cast<int64_t>(result));
+    }
+
+    Derived DivInt(const int64_t k, RoundModelNEAR) const {
+        if (k == 0) {
+            throw std::invalid_argument("Division by zero");
+        }
+
+        const bool same_sign = (value > 0) == (k > 0);
+        const __int128_t dividend = static_cast<__int128_t>(value);
+        const __int128_t adjusted = (10 * dividend) + (same_sign > 0 ? (5*k) : -(5*k));
+        __int128_t result =  adjusted / (10 * k);
+
+        if (result > INT64_MAX || result < INT64_MIN) {
+            throw std::overflow_error("Division overflow");
+        }
+        return Derived(static_cast<int64_t>(result));
+    }
+
     Derived& operator+=(const Derived& rhs) { 
         CheckAddOverflow(value, rhs.value);
         value += rhs.value;
@@ -207,12 +262,6 @@ public:
     bool operator>=(const Derived& rhs) const { return value >= rhs.value; }
 };
 
-
-struct LongDecimalRaw {
-    int64_t integer;
-    int64_t decimal;
-};
-
 template <int Precision, typename Derived>
 class LongDecimal {
 protected:
@@ -220,14 +269,17 @@ protected:
     static constexpr int64_t FACTOR = PowerOfTen<Precision>::value;
     LongDecimalRaw value;
 
+    bool Negative() const {
+        return (value.integer < 0) || (value.integer == 0 && value.decimal < 0);
+    }
+
     explicit LongDecimal(LongDecimalRaw raw_value)
         : value(raw_value) {
         if (value.decimal <= -FACTOR || value.decimal >= FACTOR) {
             throw std::overflow_error("Decimal part overflow");
         }
         if ((value.integer != 0) && (value.decimal != 0)) {
-            bool same_sign = (value.integer > 0) == (value.decimal > 0);
-            if (!same_sign) {
+            if (!(value.integer > 0) == (value.decimal > 0)) {
                 throw std::invalid_argument("Positive or negative signs are not same");
             }
         }
@@ -339,7 +391,7 @@ public:
     }
 
     std::string ToString() const {
-        bool negative = (value.integer < 0) || (value.integer == 0 && value.decimal < 0);
+        bool negative = Negative();
         uint64_t abs_integer = value.integer >= 0 ? value.integer : -value.integer;
         uint64_t abs_decimal = value.decimal >= 0 ? value.decimal : -value.decimal;
     
@@ -440,24 +492,58 @@ public:
                 }
             }
     
-            if (new_integer != 0 && new_decimal != 0) {
-                if ((new_integer > 0) != (static_cast<int64_t>(new_decimal) > 0)) {
-                    if (new_integer > 0) {
-                        new_integer -= 1;
-                        new_decimal += FACTOR;
-                    } else {
-                        new_integer += 1;
-                        new_decimal -= FACTOR;
-                    }
-                }
-            }
-    
             return Derived({new_integer, static_cast<int64_t>(new_decimal)});
         }
     }
 
     friend Derived operator*(const int64_t k, const Derived& ld) {
         return ld * k;
+    }
+
+    Derived DivInt(const int64_t k, RoundModelUP) const {
+        if (k == 0) {
+            throw std::invalid_argument("Division by zero");
+        }
+
+        const bool same_sign = Negative() == (k < 0);
+        const __int128_t dividend = static_cast<__int128_t>(value.integer) * FACTOR + value.decimal;
+        const __int128_t adjusted = (10 * dividend) + (same_sign > 0 ? (9*k) : -(9*k));
+        __int128_t result = adjusted / (10 * k);
+
+        __int128_t integer = result / FACTOR;
+        __int128_t decimal = result % FACTOR;
+
+        return Derived({static_cast<int64_t>(integer), static_cast<int64_t>(decimal)});
+    }
+
+    Derived DivInt(const int64_t k, RoundModelDOWN) const {
+        if (k == 0) {
+            throw std::invalid_argument("Division by zero");
+        }
+
+        const __int128_t dividend = static_cast<__int128_t>(value.integer) * FACTOR + value.decimal;
+        __int128_t result = dividend / k;
+
+        __int128_t integer = result / FACTOR;
+        __int128_t decimal = result % FACTOR;
+
+        return Derived({static_cast<int64_t>(integer), static_cast<int64_t>(decimal)});
+    }
+
+    Derived DivInt(const int64_t k, RoundModelNEAR) const {
+        if (k == 0) {
+            throw std::invalid_argument("Division by zero");
+        }
+
+        const bool same_sign = Negative() == (k < 0);
+        const __int128_t dividend = static_cast<__int128_t>(value.integer) * FACTOR + value.decimal;
+        const __int128_t adjusted = (10 * dividend) + (same_sign > 0 ? (5*k) : -(5*k));
+        __int128_t result =  adjusted / (10 * k);
+
+        __int128_t integer = result / FACTOR;
+        __int128_t decimal = result % FACTOR;
+
+        return Derived({static_cast<int64_t>(integer), static_cast<int64_t>(decimal)});
     }
 
     Derived& operator+=(const Derived& rhs) {
@@ -502,11 +588,6 @@ class LongQuantity : public LongDecimal<P, LongQuantity<P>> {
 public:
     explicit LongQuantity(LongDecimalRaw raw_value) : LongDecimal<P, LongQuantity>(raw_value) {}
 };
-
-// round tags
-struct RoundModelUP {};
-struct RoundModelDOWN {};
-struct RoundModelNEAR {};
 
 template<uint PP, uint SP>
 Price<PP> PxQ(const Price<PP>& px, const ShortQuantity<SP>& qty, RoundModelUP) {
