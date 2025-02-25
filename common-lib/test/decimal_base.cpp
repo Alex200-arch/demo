@@ -803,3 +803,232 @@ TEST(IntPxDivPxTest, RoundUpEdgeCase) {
     auto result = IntPxDivPx(px1, px2, RoundModel::Up{});
     EXPECT_EQ(result, INT64_MAX);
 }
+
+// Test PxPxDivQty with ShortQuantity
+TEST(PxPxDivQtyTest, PxPxDivQtyShortRound) {
+    {
+        Price<2> px = Price<2>::FromRaw(100); // 1.00
+        ShortQuantity<6> qty = ShortQuantity<6>::FromRaw(3000000); // 3.000000
+        auto result = PxPxDivQty(px, qty, RoundModel::Up());
+        EXPECT_EQ(result.GetRaw(), 34); // 1.00 / 3.000000 = 0.333... -> Up -> 0.34 (34)
+    }
+    {
+        Price<2> px = Price<2>::FromRaw(100); // 1.00
+        ShortQuantity<6> qty = ShortQuantity<6>::FromRaw(-3000000); // 3.000000
+        auto result = PxPxDivQty(px, qty, RoundModel::Up());
+        EXPECT_EQ(result.GetRaw(), -34); // 1.00 / 3.000000 = 0.333... -> Up -> 0.34 (34)
+    }
+    {
+        Price<2> px = Price<2>::FromRaw(100); // 1.00
+        ShortQuantity<6> qty = ShortQuantity<6>::FromRaw(3000000); // 3.000000
+        auto result = PxPxDivQty(px, qty, RoundModel::Down());
+        EXPECT_EQ(result.GetRaw(), 33); // 1.00 / 3.000000 = 0.333... -> Down -> 0.33 (33)
+    }
+    {
+        Price<2> px = Price<2>::FromRaw(100); // 1.00
+        ShortQuantity<6> qty = ShortQuantity<6>::FromRaw(-3000000); // 3.000000
+        auto result = PxPxDivQty(px, qty, RoundModel::Down());
+        EXPECT_EQ(result.GetRaw(), -33); // 1.00 / 3.000000 = 0.333... -> Down -> 0.33 (33)
+    }
+    {
+        Price<2> px = Price<2>::FromRaw(100); // 1.00
+        ShortQuantity<6> qty = ShortQuantity<6>::FromRaw(3000000); // 3.000000
+        auto result = PxPxDivQty(px, qty, RoundModel::Near());
+        EXPECT_EQ(result.GetRaw(), 33); // 1.00 / 3.000000 = 0.333... -> Near -> 0.33 (34)
+    }
+    {
+        Price<2> px = Price<2>::FromRaw(100); // 1.00
+        ShortQuantity<6> qty = ShortQuantity<6>::FromRaw(-3000000); // 3.000000
+        auto result = PxPxDivQty(px, qty, RoundModel::Near());
+        EXPECT_EQ(result.GetRaw(), -33); // 1.00 / 3.000000 = 0.333... -> Near -> 0.33 (34)
+    }
+    {
+        Price<2> px = Price<2>::FromRaw(100); // 1.00
+        ShortQuantity<6> qty = ShortQuantity<6>::FromRaw(6000000); // 6.000000
+        auto result = PxPxDivQty(px, qty, RoundModel::Near());
+        EXPECT_EQ(result.GetRaw(), 17); // 1.00 / 6.000000 = 0.1666... -> Near -> 0.17 (17)
+    }
+    {
+        Price<2> px = Price<2>::FromRaw(100); // 1.00
+        ShortQuantity<6> qty = ShortQuantity<6>::FromRaw(-6000000); // 6.000000
+        auto result = PxPxDivQty(px, qty, RoundModel::Near());
+        EXPECT_EQ(result.GetRaw(), -17); // 1.00 / 6.000000 = 0.1666... -> Near -> 0.17 (17)
+    }
+}
+
+// Test PxPxDivQty with LongQuantity
+TEST(PxPxDivQtyTest, PxPxDivQtyLongRound) {
+    {
+        Price<3> px = Price<3>::FromRaw(1000); // 1.000
+        LongQuantity<18> qty = LongQuantity<18>::FromRaw({3, 0}); // 3.000000000000000000
+        auto result = PxPxDivQty(px, qty, RoundModel::Up());
+        EXPECT_EQ(result.GetRaw(), 334); // 1.00 / 3.000000 = 0.3333... -> Up -> 0.334 (334)
+    }
+    {
+        Price<3> px = Price<3>::FromRaw(1000); // 1.000
+        LongQuantity<18> qty = LongQuantity<18>::FromRaw({-3, 0}); // 3.000000000000000000
+        auto result = PxPxDivQty(px, qty, RoundModel::Up());
+        EXPECT_EQ(result.GetRaw(), -334); // 1.00 / 3.000000 = 0.3333... -> Up -> 0.334 (334)
+    }
+    {
+        Price<3> px = Price<3>::FromRaw(1000); // 1.000
+        LongQuantity<18> qty = LongQuantity<18>::FromRaw({3, 0}); // 3.000000000000000000
+        auto result = PxPxDivQty(px, qty, RoundModel::Down());
+        EXPECT_EQ(result.GetRaw(), 333); // 1.00 / 3.000000 = 0.3333... -> Down -> 0.334 (333)
+    }
+    {
+        Price<3> px = Price<3>::FromRaw(1000); // 1.000
+        LongQuantity<18> qty = LongQuantity<18>::FromRaw({-3, 0}); // 3.000000000000000000
+        auto result = PxPxDivQty(px, qty, RoundModel::Down());
+        EXPECT_EQ(result.GetRaw(), -333); // 1.00 / 3.000000 = 0.3333... -> Down -> 0.333 (333)
+    }
+    {
+        Price<3> px = Price<3>::FromRaw(1000); // 1.000
+        LongQuantity<18> qty = LongQuantity<18>::FromRaw({3, 0}); // 3.000000000000000000
+        auto result = PxPxDivQty(px, qty, RoundModel::Near());
+        EXPECT_EQ(result.GetRaw(), 333); // 1.00 / 3.000000 = 0.3333... -> Near -> 0.334 (333)
+    }
+    {
+        Price<3> px = Price<3>::FromRaw(1000); // 1.000
+        LongQuantity<18> qty = LongQuantity<18>::FromRaw({-3, 0}); // 3.000000000000000000
+        auto result = PxPxDivQty(px, qty, RoundModel::Near());
+        EXPECT_EQ(result.GetRaw(), -333); // 1.00 / 3.000000 = 0.3333... -> Near -> 0.333 (333)
+    }
+    {
+        Price<3> px = Price<3>::FromRaw(1000); // 1.000
+        LongQuantity<18> qty = LongQuantity<18>::FromRaw({6, 0}); // 6.000000000000000000
+        auto result = PxPxDivQty(px, qty, RoundModel::Near());
+        EXPECT_EQ(result.GetRaw(), 167); // 1.00 / 6.000000 = 0.16666... -> Near -> 0.167 (167)
+    }
+    {
+        Price<3> px = Price<3>::FromRaw(1000); // 1.000
+        LongQuantity<18> qty = LongQuantity<18>::FromRaw({-6, 0}); // 6.000000000000000000
+        auto result = PxPxDivQty(px, qty, RoundModel::Near());
+        EXPECT_EQ(result.GetRaw(), -167); // 1.00 / 6.000000 = 0.16666... -> Near -> 0.167 (167)
+    }
+}
+
+// Test division by zero exception
+TEST(PxPxDivQtyTest, PxPxDivQtyZeroDivisor) {
+    {
+        Price<2> px = Price<2>::FromRaw(100);
+        ShortQuantity<9> qty = ShortQuantity<9>::FromRaw(0);
+        EXPECT_THROW(PxPxDivQty(px, qty, RoundModel::Up()), std::invalid_argument);
+    }
+    {
+        Price<2> px = Price<2>::FromRaw(100);
+        LongQuantity<18> qty = LongQuantity<18>::FromRaw({0, 0});
+        EXPECT_THROW(PxPxDivQty(px, qty, RoundModel::Up()), std::invalid_argument);
+    }
+}
+
+// Test IntQtyDivQty with ShortQuantity
+TEST(IntQtyDivQtyTest, IntQtyDivQtyShortRound) {
+    {
+        ShortQuantity<9> qty1 = ShortQuantity<9>::FromRaw(15000000000); // 15.000000000
+        ShortQuantity<9> qty2 = ShortQuantity<9>::FromRaw(4000000000);  // 4.000000000
+        auto result = IntQtyDivQty(qty1, qty2, RoundModel::Up());
+        EXPECT_EQ(result, 4); // 15 / 4 = 3.75 -> Up -> 4
+    }
+    {
+        ShortQuantity<9> qty1 = ShortQuantity<9>::FromRaw(15000000000); // 15.000000000
+        ShortQuantity<9> qty2 = ShortQuantity<9>::FromRaw(-4000000000);  // 4.000000000
+        auto result = IntQtyDivQty(qty1, qty2, RoundModel::Up());
+        EXPECT_EQ(result, -4); // 15 / 4 = 3.75 -> Up -> 4
+    }
+    {
+        ShortQuantity<9> qty1 = ShortQuantity<9>::FromRaw(15000000000); // 15.000000000
+        ShortQuantity<9> qty2 = ShortQuantity<9>::FromRaw(4000000000);  // 4.000000000
+        auto result = IntQtyDivQty(qty1, qty2, RoundModel::Down());
+        EXPECT_EQ(result, 3); // 15 / 4 = 3.75 -> Down -> 3
+    }
+    {
+        ShortQuantity<9> qty1 = ShortQuantity<9>::FromRaw(15000000000); // 15.000000000
+        ShortQuantity<9> qty2 = ShortQuantity<9>::FromRaw(-4000000000);  // 4.000000000
+        auto result = IntQtyDivQty(qty1, qty2, RoundModel::Down());
+        EXPECT_EQ(result, -3); // 15 / 4 = 3.75 -> Down -> 3
+    }
+    {
+        ShortQuantity<9> qty1 = ShortQuantity<9>::FromRaw(15000000000); // 15.000000000
+        ShortQuantity<9> qty2 = ShortQuantity<9>::FromRaw(4000000000);  // 4.000000000
+        auto result = IntQtyDivQty(qty1, qty2, RoundModel::Near());
+        EXPECT_EQ(result, 4); // 15 / 4 = 3.75 -> Near -> 4
+    }
+    {
+        ShortQuantity<9> qty1 = ShortQuantity<9>::FromRaw(15000000000); // 15.000000000
+        ShortQuantity<9> qty2 = ShortQuantity<9>::FromRaw(-4000000000);  // 4.000000000
+        auto result = IntQtyDivQty(qty1, qty2, RoundModel::Near());
+        EXPECT_EQ(result, -4); // 15 / 4 = 3.75 -> Near -> 4
+    }
+    {
+        ShortQuantity<9> qty1 = ShortQuantity<9>::FromRaw(15000000000); // 15.000000000
+        ShortQuantity<9> qty2 = ShortQuantity<9>::FromRaw(7000000000);  // 7.000000000
+        auto result = IntQtyDivQty(qty1, qty2, RoundModel::Near());
+        EXPECT_EQ(result, 2); // 15 / 7 = 2.142857 -> Near -> 2
+    }
+    {
+        ShortQuantity<9> qty1 = ShortQuantity<9>::FromRaw(15000000000); // 15.000000000
+        ShortQuantity<9> qty2 = ShortQuantity<9>::FromRaw(-7000000000);  // 7.000000000
+        auto result = IntQtyDivQty(qty1, qty2, RoundModel::Near());
+        EXPECT_EQ(result, -2); // 15 / 7 = 2.142857 -> Near -> 2
+    }
+}
+
+// Test IntQtyDivQty with LongQuantity
+TEST(IntQtyDivQtyTest, IntQtyDivQtyLongRound) {
+    {
+        LongQuantity<18> qty1 = LongQuantity<18>::FromRaw({15, 0}); // 15.000000000
+        LongQuantity<18> qty2 = LongQuantity<18>::FromRaw({4,0});  // 4.000000000
+        auto result = IntQtyDivQty(qty1, qty2, RoundModel::Up());
+        EXPECT_EQ(result, 4); // 15 / 4 = 3.75 -> Up -> 4
+    }
+    {
+        LongQuantity<18> qty1 = LongQuantity<18>::FromRaw({15, 0}); // 15.000000000
+        LongQuantity<18> qty2 = LongQuantity<18>::FromRaw({-4,0});  // 4.000000000
+        auto result = IntQtyDivQty(qty1, qty2, RoundModel::Up());
+        EXPECT_EQ(result, -4); // 15 / 4 = 3.75 -> Up -> 4
+    }
+    {
+        LongQuantity<18> qty1 = LongQuantity<18>::FromRaw({15, 0}); // 15.000000000
+        LongQuantity<18> qty2 = LongQuantity<18>::FromRaw({4,0});  // 4.000000000
+        auto result = IntQtyDivQty(qty1, qty2, RoundModel::Down());
+        EXPECT_EQ(result, 3); // 15 / 4 = 3.75 -> Down -> 3
+    }
+    {
+        LongQuantity<18> qty1 = LongQuantity<18>::FromRaw({15, 0}); // 15.000000000
+        LongQuantity<18> qty2 = LongQuantity<18>::FromRaw({-4,0});  // 4.000000000
+        auto result = IntQtyDivQty(qty1, qty2, RoundModel::Down());
+        EXPECT_EQ(result, -3); // 15 / 4 = 3.75 -> Down -> 3
+    }
+    {
+        LongQuantity<18> qty1 = LongQuantity<18>::FromRaw({15, 0}); // 15.000000000
+        LongQuantity<18> qty2 = LongQuantity<18>::FromRaw({4,0});  // 4.000000000
+        auto result = IntQtyDivQty(qty1, qty2, RoundModel::Near());
+        EXPECT_EQ(result, 4); // 15 / 4 = 3.75 -> Near -> 4
+    }
+    {
+        LongQuantity<18> qty1 = LongQuantity<18>::FromRaw({15, 0}); // 15.000000000
+        LongQuantity<18> qty2 = LongQuantity<18>::FromRaw({-4,0});  // 4.000000000
+        auto result = IntQtyDivQty(qty1, qty2, RoundModel::Near());
+        EXPECT_EQ(result, -4); // 15 / 4 = 3.75 -> Near -> 4
+    }
+    {
+        LongQuantity<18> qty1 = LongQuantity<18>::FromRaw({15, 0}); // 15.000000000
+        LongQuantity<18> qty2 = LongQuantity<18>::FromRaw({7,0});  // 7.000000000
+        auto result = IntQtyDivQty(qty1, qty2, RoundModel::Near());
+        EXPECT_EQ(result, 2); // 15 / 7 = 2.142857 -> Near -> 2
+    }
+    {
+        LongQuantity<18> qty1 = LongQuantity<18>::FromRaw({15, 0}); // 15.000000000
+        LongQuantity<18> qty2 = LongQuantity<18>::FromRaw({-7,0});  // 7.000000000
+        auto result = IntQtyDivQty(qty1, qty2, RoundModel::Near());
+        EXPECT_EQ(result, -2); // 15 / 7 = 2.142857 -> Near -> 2
+    }
+}
+
+// Test division by zero exception for IntQtyDivQty
+TEST(IntQtyDivQtyTest, IntQtyDivQtyZeroDivisor) {
+    ShortQuantity<2> qty1 = ShortQuantity<2>::FromRaw(100);
+    ShortQuantity<2> qty2 = ShortQuantity<2>::FromRaw(0);
+    EXPECT_THROW(IntQtyDivQty(qty1, qty2, RoundModel::Up()), std::invalid_argument);
+}
