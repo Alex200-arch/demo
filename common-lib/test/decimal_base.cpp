@@ -398,46 +398,42 @@ TEST(LongQuantity0Test, Comparison) {
 // ---------------------- Price/ShortQuantity ----------------------
 TEST(PriceTest, MultiplyInteger) {
     auto a = Price<4>::FromDouble(12.34);
-    auto b = a * 3;
+    auto b = a.MulInt(3);
     EXPECT_EQ(b.ToDouble(), 37.02);
-    auto c = 3 * a;
-    EXPECT_EQ(c.ToDouble(), 37.02);
 }
 
 TEST(PriceTest, MultiplyIntegerOverflow) {
     auto a = Price<0>::FromRaw(INT64_MAX);
-    EXPECT_THROW(a * 2, std::overflow_error);
+    EXPECT_THROW(a.MulInt(2), std::overflow_error);
 }
 
 // ---------------------- LongQuantity ----------------------
 TEST(LongQuantityTest, MultiplyInteger) {
     auto a = LongQuantity<2>::FromRaw({12, 34});
-    auto b = a * 3;
+    auto b = a.MulInt(3);
     EXPECT_EQ(b.ToString(), "37.02");
-    auto c = 3 * a;
-    EXPECT_EQ(c.ToString(), "37.02");
 }
 
 TEST(LongQuantityTest, MultiplyNegative) {
     auto a = LongQuantity<2>::FromRaw({-5, -25}); 
-    auto b = a * 4;
+    auto b = a.MulInt(4);
     EXPECT_EQ(b.ToString(), "-21.00");
 }
 
 TEST(LongQuantityTest, PrecisionZeroMultiply) {
     auto a = LongQuantity<0>::FromInteger(100);
-    auto b = a * 3;
+    auto b = a.MulInt(3);
     EXPECT_EQ(b.ToString(), "300");
 }
 
 TEST(LongQuantityTest, MultiplyCarryOverflow) {
     auto a = LongQuantity<2>::FromRaw({INT64_MAX, 99});
-    EXPECT_THROW(a * 2, std::overflow_error);
+    EXPECT_THROW(a.MulInt(2);, std::overflow_error);
 }
 
 TEST(LongQuantityTest, MultiplyDecimalOverflow) {
     auto a = LongQuantity<2>::FromRaw({0, 50});
-    auto b = a * 300;
+    auto b = a.MulInt(300);;
     EXPECT_EQ(b.ToString(), "150.00");
 }
 
