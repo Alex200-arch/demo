@@ -441,94 +441,94 @@ TEST(LongQuantityTest, MultiplyDecimalOverflow) {
 TEST(PriceTest, MultiplyUpRounding) {
     Price<2> p = Price<2>::FromRaw(123);  // 1.23
     ShortQuantity<3> q = ShortQuantity<3>::FromRaw(4567);  // 4.567
-    auto result = p.MulQty(q, RoundModel::Up());
+    auto result = p.MulSQty(q, RoundModel::Up());
     EXPECT_EQ(result.GetRaw(), 562);  // 1.23 * 4.567 = 5.61741 -> UP -> 5.62
 }
 
 TEST(PriceTest, MultiplyUpRoundingNegative) {
     Price<2> p = Price<2>::FromRaw(-123); // -1.23
     ShortQuantity<3> q = ShortQuantity<3>::FromRaw(4567); // 4.567
-    auto result = p.MulQty(q, RoundModel::Up());
+    auto result = p.MulSQty(q, RoundModel::Up());
     EXPECT_EQ(result.GetRaw(), -562); // -1.23 * 4.567 = -5.61741 -> UP -> -5.62
 }
 
 TEST(PriceTest, MultiplyNearRoundingHalf) {
     Price<2> p = Price<2>::FromRaw(123); // 1.23
     ShortQuantity<3> q = ShortQuantity<3>::FromRaw(2500); // 2.500
-    auto result = p.MulQty(q, RoundModel::Near());
+    auto result = p.MulSQty(q, RoundModel::Near());
     EXPECT_EQ(result.GetRaw(), 308); // 1.23 * 2.5 = 3.075 -> NEAR -> 3.08
 }
 
 TEST(PriceTest, MultiplyNearRoundingLessThanHalf) {
     Price<2> p = Price<2>::FromRaw(123); // 1.23
     ShortQuantity<3> q = ShortQuantity<3>::FromRaw(2499); // 2.499
-    auto result = p.MulQty(q, RoundModel::Near());
+    auto result = p.MulSQty(q, RoundModel::Near());
     EXPECT_EQ(result.GetRaw(), 307); // 1.23 *2.499 = 3.07377 -> NEAR -> 3.07
     Price<2> p2 = Price<2>::FromRaw(-123); // -1.23
     ShortQuantity<3> q2 = ShortQuantity<3>::FromRaw(2499); // 2.499
-    auto result2 = p2.MulQty(q2, RoundModel::Near());
+    auto result2 = p2.MulSQty(q2, RoundModel::Near());
     EXPECT_EQ(result2.GetRaw(), -307); // -1.23 *2.499 = -3.07377 -> NEAR -> -3.07
 }
 
 TEST(PriceTest, MultiplyDownRounding) {
     Price<2> p = Price<2>::FromRaw(123);
     ShortQuantity<3> q = ShortQuantity<3>::FromRaw(4567);
-    auto result = p.MulQty(q, RoundModel::Down());
+    auto result = p.MulSQty(q, RoundModel::Down());
     EXPECT_EQ(result.GetRaw(), 561); // 1.23 * 4.567 = 5.61741 -> DOWN -> 5.61
 }
 
 TEST(PriceTest, MultiplySQOverflow) {
     Price<2> p = Price<2>::FromRaw(INT64_MAX);
     ShortQuantity<0> q = ShortQuantity<0>::FromRaw(2); // Integer 2
-    EXPECT_THROW(p.MulQty(q, RoundModel::Down()), std::overflow_error);
+    EXPECT_THROW(p.MulSQty(q, RoundModel::Down()), std::overflow_error);
 }
 
 TEST(LongQuantityPxQTest, RoundUpPositive) {
     Price<2> px = Price<2>::FromRaw(122); // 1.22
     LongQuantity<3> qty = LongQuantity<3>::FromRaw({5, 123}); // 5.123
-    auto result = px.MulQty(qty, RoundModel::Up());
+    auto result = px.MulLQty(qty, RoundModel::Up());
     EXPECT_EQ(result.GetRaw(), 625); // 1.22 * 5.123 = 6.25006 -> UP 6.25
 }
 
 TEST(LongQuantityPxQTest, RoundUpNegative) {
     Price<2> px = Price<2>::FromRaw(-178); // -1.78
     LongQuantity<3> qty = LongQuantity<3>::FromRaw({5, 123}); // 5.123
-    auto result = px.MulQty(qty, RoundModel::Up());
+    auto result = px.MulLQty(qty, RoundModel::Up());
     EXPECT_EQ(result.GetRaw(), -912); // -1.78 * 5.123 = -9.11894 -> UP -9.12
 }
 
 TEST(LongQuantityPxQTest, RoundDownPositive) {
     Price<2> px = Price<2>::FromRaw(153); // 1.53
     LongQuantity<3> qty = LongQuantity<3>::FromRaw({3, 578}); // 3.578
-    auto result = px.MulQty(qty, RoundModel::Down());
+    auto result = px.MulLQty(qty, RoundModel::Down());
     EXPECT_EQ(result.GetRaw(), 547); // 1.53 * 3.578 = 5.47434 -> DOWN 5.47
 }
 
 TEST(LongQuantityPxQTest, RoundDownNegative) {
     Price<2> px = Price<2>::FromRaw(-153); // -1.53
     LongQuantity<3> qty = LongQuantity<3>::FromRaw({3, 578}); // 3.578
-    auto result = px.MulQty(qty, RoundModel::Down());
+    auto result = px.MulLQty(qty, RoundModel::Down());
     EXPECT_EQ(result.GetRaw(), -547); // -1.53 * 3.578 = -5.47434 -> DOWN -5.47
 }
 
 TEST(LongQuantityPxQTest, RoundNearHalfUp) {
     Price<2> px = Price<2>::FromRaw(100); // 1.00
     LongQuantity<3> qty = LongQuantity<3>::FromRaw({2, 500}); // 2.500
-    auto result = px.MulQty(qty, RoundModel::Near());
+    auto result = px.MulLQty(qty, RoundModel::Near());
     EXPECT_EQ(result.GetRaw(), 250); // 1.00 * 2.500 = 2.50000 -> NEAR 2.50
 }
 
 TEST(LongQuantityPxQTest, RoundNearHalfDown) {
     Price<2> px = Price<2>::FromRaw(100); // 1.00
     LongQuantity<3> qty = LongQuantity<3>::FromRaw({2, 499}); // 2.499
-    auto result = px.MulQty(qty, RoundModel::Near());
+    auto result = px.MulLQty(qty, RoundModel::Near());
     EXPECT_EQ(result.GetRaw(), 250); // 1.00 * 2.499 = 2.49900 -> NEAR 2.50
 }
 
 TEST(LongQuantityPxQTest, OverflowCheck) {
     Price<2> px = Price<2>::FromRaw(INT64_MAX);
     LongQuantity<3> qty = LongQuantity<3>::FromRaw({10, 0}); // 10.000
-    EXPECT_THROW(px.MulQty(qty, RoundModel::Up()), std::overflow_error);
+    EXPECT_THROW(px.MulLQty(qty, RoundModel::Up()), std::overflow_error);
 }
 
 // ---------------------- Price/ShortQuantity Division ----------------------
@@ -805,49 +805,49 @@ TEST(PxPxDivQtyTest, PxPxDivQtyShortRound) {
     {
         Price<2> px = Price<2>::FromRaw(100); // 1.00
         ShortQuantity<6> qty = ShortQuantity<6>::FromRaw(3000000); // 3.000000
-        auto result = PxPxDivQty(px, qty, RoundModel::Up());
+        auto result = px.DivSQtyToPx(qty, RoundModel::Up());
         EXPECT_EQ(result.GetRaw(), 34); // 1.00 / 3.000000 = 0.333... -> Up -> 0.34 (34)
     }
     {
         Price<2> px = Price<2>::FromRaw(100); // 1.00
         ShortQuantity<6> qty = ShortQuantity<6>::FromRaw(-3000000); // 3.000000
-        auto result = PxPxDivQty(px, qty, RoundModel::Up());
+        auto result = px.DivSQtyToPx(qty, RoundModel::Up());
         EXPECT_EQ(result.GetRaw(), -34); // 1.00 / 3.000000 = 0.333... -> Up -> 0.34 (34)
     }
     {
         Price<2> px = Price<2>::FromRaw(100); // 1.00
         ShortQuantity<6> qty = ShortQuantity<6>::FromRaw(3000000); // 3.000000
-        auto result = PxPxDivQty(px, qty, RoundModel::Down());
+        auto result = px.DivSQtyToPx(qty, RoundModel::Down());
         EXPECT_EQ(result.GetRaw(), 33); // 1.00 / 3.000000 = 0.333... -> Down -> 0.33 (33)
     }
     {
         Price<2> px = Price<2>::FromRaw(100); // 1.00
         ShortQuantity<6> qty = ShortQuantity<6>::FromRaw(-3000000); // 3.000000
-        auto result = PxPxDivQty(px, qty, RoundModel::Down());
+        auto result = px.DivSQtyToPx(qty, RoundModel::Down());
         EXPECT_EQ(result.GetRaw(), -33); // 1.00 / 3.000000 = 0.333... -> Down -> 0.33 (33)
     }
     {
         Price<2> px = Price<2>::FromRaw(100); // 1.00
         ShortQuantity<6> qty = ShortQuantity<6>::FromRaw(3000000); // 3.000000
-        auto result = PxPxDivQty(px, qty, RoundModel::Near());
+        auto result = px.DivSQtyToPx(qty, RoundModel::Near());
         EXPECT_EQ(result.GetRaw(), 33); // 1.00 / 3.000000 = 0.333... -> Near -> 0.33 (34)
     }
     {
         Price<2> px = Price<2>::FromRaw(100); // 1.00
         ShortQuantity<6> qty = ShortQuantity<6>::FromRaw(-3000000); // 3.000000
-        auto result = PxPxDivQty(px, qty, RoundModel::Near());
+        auto result = px.DivSQtyToPx(qty, RoundModel::Near());
         EXPECT_EQ(result.GetRaw(), -33); // 1.00 / 3.000000 = 0.333... -> Near -> 0.33 (34)
     }
     {
         Price<2> px = Price<2>::FromRaw(100); // 1.00
         ShortQuantity<6> qty = ShortQuantity<6>::FromRaw(6000000); // 6.000000
-        auto result = PxPxDivQty(px, qty, RoundModel::Near());
+        auto result = px.DivSQtyToPx(qty, RoundModel::Near());
         EXPECT_EQ(result.GetRaw(), 17); // 1.00 / 6.000000 = 0.1666... -> Near -> 0.17 (17)
     }
     {
         Price<2> px = Price<2>::FromRaw(100); // 1.00
         ShortQuantity<6> qty = ShortQuantity<6>::FromRaw(-6000000); // 6.000000
-        auto result = PxPxDivQty(px, qty, RoundModel::Near());
+        auto result = px.DivSQtyToPx(qty, RoundModel::Near());
         EXPECT_EQ(result.GetRaw(), -17); // 1.00 / 6.000000 = 0.1666... -> Near -> 0.17 (17)
     }
 }
@@ -909,7 +909,7 @@ TEST(PxPxDivQtyTest, PxPxDivQtyZeroDivisor) {
     {
         Price<2> px = Price<2>::FromRaw(100);
         ShortQuantity<9> qty = ShortQuantity<9>::FromRaw(0);
-        EXPECT_THROW(PxPxDivQty(px, qty, RoundModel::Up()), std::invalid_argument);
+        EXPECT_THROW(px.DivSQtyToPx(qty, RoundModel::Up()), std::invalid_argument);
     }
     {
         Price<2> px = Price<2>::FromRaw(100);

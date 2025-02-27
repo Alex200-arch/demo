@@ -56,14 +56,14 @@ protected:
 
     explicit ShortDecimal(int64_t raw_value) : value(raw_value) {}
 
-    template<template<uint> class RT, uint RTP>
-    RT<RTP> DivToShortDecimal(const Derived& rhs, RoundModel::Up) {
+    template<template<uint> typename RT, uint RTP, template<uint> typename OPD, uint OPDP>
+    RT<RTP> DivToShortDecimal(const OPD<OPDP>& rhs, RoundModel::Up) {
         int64_t rhs_raw = rhs.GetRaw();
         if (rhs_raw == 0) {
             throw std::invalid_argument("Division by zero");
         }
         const bool same_sign = (value > 0) == (rhs_raw > 0);
-        const __int128_t value_128 = static_cast<__int128_t>(value) * PowerOfTen<RTP>::value;
+        const __int128_t value_128 = static_cast<__int128_t>(value) * PowerOfTen<RTP+OPDP-Precision>::value;
         const __int128_t rhs_128 = static_cast<__int128_t>(rhs_raw);
         const __int128_t adjusted = (10 * value_128) + (same_sign > 0 ? (9*rhs_128) : -(9*rhs_128));
         __int128_t result = adjusted / (10 * rhs_128);
@@ -74,13 +74,13 @@ protected:
         return RT<RTP>(static_cast<int64_t>(result));
     }
 
-    template<template<uint> class RT, uint RTP>
-    RT<RTP> DivToShortDecimal(const Derived& rhs, RoundModel::Down) {
+    template<template<uint> typename RT, uint RTP, template<uint> typename OPD, uint OPDP>
+    RT<RTP> DivToShortDecimal(const OPD<OPDP>& rhs, RoundModel::Down) {
         int64_t rhs_raw = rhs.GetRaw();
         if (rhs_raw == 0) {
             throw std::invalid_argument("Division by zero");
         }
-        const __int128_t value_128 = static_cast<__int128_t>(value) * PowerOfTen<RTP>::value;
+        const __int128_t value_128 = static_cast<__int128_t>(value) * PowerOfTen<RTP+OPDP-Precision>::value;
         const __int128_t rhs_128 = static_cast<__int128_t>(rhs_raw);
         __int128_t result = value_128 / rhs_128;
         
@@ -90,14 +90,14 @@ protected:
         return RT<RTP>(static_cast<int64_t>(result));
     }
 
-    template<template<uint> class RT, uint RTP>
-    RT<RTP> DivToShortDecimal(const Derived& rhs, RoundModel::Near) {
+    template<template<uint> typename RT, uint RTP, template<uint> typename OPD, uint OPDP>
+    RT<RTP> DivToShortDecimal(const OPD<OPDP>& rhs, RoundModel::Near) {
         int64_t rhs_raw = rhs.GetRaw();
         if (rhs_raw == 0) {
             throw std::invalid_argument("Division by zero");
         }
         const bool same_sign = (value > 0) == (rhs_raw > 0);
-        const __int128_t value_128 = static_cast<__int128_t>(value) * PowerOfTen<RTP>::value;
+        const __int128_t value_128 = static_cast<__int128_t>(value) * PowerOfTen<RTP+OPDP-Precision>::value;
         const __int128_t rhs_128 = static_cast<__int128_t>(rhs_raw);
         const __int128_t adjusted = (10 * value_128) + (same_sign > 0 ? (5*rhs_128) : -(5*rhs_128));
         __int128_t result = adjusted / (10 * rhs_128);
@@ -725,7 +725,7 @@ public:
 
     // Px = Px * Qty (Qty: Short and Long. Round: Up, Down and Near)
     template<uint SQP>
-    Price MulQty(const ShortQuantity<SQP>& qty, RoundModel::Up) const {
+    Price MulSQty(const ShortQuantity<SQP>& qty, RoundModel::Up) const {
         int64_t price_raw = this->GetRaw();
         int64_t qty_raw = qty.GetRaw();
     
@@ -745,7 +745,7 @@ public:
     }
 
     template<uint SQP>
-    Price MulQty(const ShortQuantity<SQP>& qty, RoundModel::Down) const {
+    Price MulSQty(const ShortQuantity<SQP>& qty, RoundModel::Down) const {
         int64_t price_raw = this->GetRaw();
         int64_t qty_raw = qty.GetRaw();
     
@@ -763,7 +763,7 @@ public:
     }
 
     template<uint SQP>
-    Price MulQty(const ShortQuantity<SQP>& qty, RoundModel::Near) const {
+    Price MulSQty(const ShortQuantity<SQP>& qty, RoundModel::Near) const {
         int64_t price_raw = this->GetRaw();
         int64_t qty_raw = qty.GetRaw();
     
@@ -783,7 +783,7 @@ public:
     }
 
     template<uint LQP>
-    Price MulQty(const LongQuantity<LQP>& qty, RoundModel::Up) {
+    Price MulLQty(const LongQuantity<LQP>& qty, RoundModel::Up) {
         int64_t price_raw = this->GetRaw();
         LongDecimalRaw qty_raw = qty.GetRaw();
         __int128_t quantity_total = static_cast<__int128_t>(qty_raw.integer) * PowerOfTen<LQP>::value + qty_raw.decimal;
@@ -804,7 +804,7 @@ public:
     }
 
     template<uint LQP>
-    Price MulQty(const LongQuantity<LQP>& qty, RoundModel::Down) {
+    Price MulLQty(const LongQuantity<LQP>& qty, RoundModel::Down) {
         int64_t price_raw = this->GetRaw();
         LongDecimalRaw qty_raw = qty.GetRaw();
         __int128_t quantity_total = static_cast<__int128_t>(qty_raw.integer) * PowerOfTen<LQP>::value + qty_raw.decimal;
@@ -823,7 +823,7 @@ public:
     }
 
     template<uint LQP>
-    Price MulQty(const LongQuantity<LQP>& qty, RoundModel::Near) {
+    Price MulLQty(const LongQuantity<LQP>& qty, RoundModel::Near) {
         int64_t price_raw = this->GetRaw();
         LongDecimalRaw qty_raw = qty.GetRaw();
         __int128_t quantity_total = static_cast<__int128_t>(qty_raw.integer) * PowerOfTen<LQP>::value + qty_raw.decimal;
@@ -845,17 +845,32 @@ public:
 
     template<uint SQP>
     ShortQuantity<SQP> DivPxToSQty(const Price& px2, RoundModel::Up) {
-        return DivToShortDecimal<ShortQuantity, SQP>(px2, RoundModel::Up());
+        return DivToShortDecimal<ShortQuantity, SQP, Price, P>(px2, RoundModel::Up());
     }
 
     template<uint SQP>
     ShortQuantity<SQP> DivPxToSQty(const Price& px2, RoundModel::Down) {
-        return DivToShortDecimal<ShortQuantity, SQP>(px2, RoundModel::Down());
+        return DivToShortDecimal<ShortQuantity, SQP, Price, P>(px2, RoundModel::Down());
     }
 
     template<uint SQP>
     ShortQuantity<SQP> DivPxToSQty(const Price& px2, RoundModel::Near) {
-        return DivToShortDecimal<ShortQuantity, SQP>(px2, RoundModel::Near());
+        return DivToShortDecimal<ShortQuantity, SQP, Price, P>(px2, RoundModel::Near());
+    }
+
+    template<uint SQP>
+    Price<P> DivSQtyToPx(const ShortQuantity<SQP>& qty, RoundModel::Up) {
+        return DivToShortDecimal<Price, P, ShortQuantity, SQP>(qty, RoundModel::Up());
+    }
+
+    template<uint SQP>
+    Price<P> DivSQtyToPx(const ShortQuantity<SQP>& qty, RoundModel::Down) {
+        return DivToShortDecimal<Price, P, ShortQuantity, SQP>(qty, RoundModel::Down());
+    }
+
+    template<uint SQP>
+    Price<P> DivSQtyToPx(const ShortQuantity<SQP>& qty, RoundModel::Near) {
+        return DivToShortDecimal<Price, P, ShortQuantity, SQP>(qty, RoundModel::Near());
     }
 };
 
@@ -962,62 +977,7 @@ LongQuantity<LQP> LQtyPxDivPx(const Price<PP>& px1, const Price<PP>& px2, RoundM
 
 
 
-// Px = Px / Qty (Qty: Short and Long. Round: Up, Down and Near)
-template<uint PP, uint SQP>
-Price<PP> PxPxDivQty(const Price<PP>& px, const ShortQuantity<SQP>& qty, RoundModel::Up) {
-    int64_t qty_raw = qty.GetRaw();
-    if (qty_raw == 0) {
-        throw std::invalid_argument("Division by zero");
-    }
-    int64_t px_raw = px.GetRaw();
-    const bool same_sign = (px_raw > 0) == (qty_raw > 0);
-    const __int128_t px_128 = static_cast<__int128_t>(px_raw) * PowerOfTen<SQP>::value;
-    const __int128_t qty_128 = static_cast<__int128_t>(qty_raw);
-    const __int128_t adjusted = (10 * px_128) + (same_sign > 0 ? (9*qty_128) : -(9*qty_128));
-    __int128_t result = adjusted / (10 * qty_128);
-    
-    if (result > INT64_MAX || result < INT64_MIN) {
-        throw std::overflow_error("Division overflow");
-    }
-    return Price<PP>(static_cast<int64_t>(result));
-}
 
-template<uint PP, uint SQP>
-Price<PP> PxPxDivQty(const Price<PP>& px, const ShortQuantity<SQP>& qty, RoundModel::Down) {
-    int64_t qty_raw = qty.GetRaw();
-    if (qty_raw == 0) {
-        throw std::invalid_argument("Division by zero");
-    }
-    int64_t px_raw = px.GetRaw();
-    const bool same_sign = (px_raw > 0) == (qty_raw > 0);
-    const __int128_t px_128 = static_cast<__int128_t>(px_raw) * PowerOfTen<SQP>::value;
-    const __int128_t qty_128 = static_cast<__int128_t>(qty_raw);
-    __int128_t result = px_128 / qty_128;
-    
-    if (result > INT64_MAX || result < INT64_MIN) {
-        throw std::overflow_error("Division overflow");
-    }
-    return Price<PP>(static_cast<int64_t>(result));
-}
-
-template<uint PP, uint SQP>
-Price<PP> PxPxDivQty(const Price<PP>& px, const ShortQuantity<SQP>& qty, RoundModel::Near) {
-    int64_t qty_raw = qty.GetRaw();
-    if (qty_raw == 0) {
-        throw std::invalid_argument("Division by zero");
-    }
-    int64_t px_raw = px.GetRaw();
-    const bool same_sign = (px_raw > 0) == (qty_raw > 0);
-    const __int128_t px_128 = static_cast<__int128_t>(px_raw) * PowerOfTen<SQP>::value;
-    const __int128_t qty_128 = static_cast<__int128_t>(qty_raw);
-    const __int128_t adjusted = (10 * px_128) + (same_sign > 0 ? (5*qty_128) : -(5*qty_128));
-    __int128_t result = adjusted / (10 * qty_128);
-    
-    if (result > INT64_MAX || result < INT64_MIN) {
-        throw std::overflow_error("Division overflow");
-    }
-    return Price<PP>(static_cast<int64_t>(result));
-}
 
 template<uint PP, uint LQP>
 Price<PP> PxPxDivQty(const Price<PP>& px, const LongQuantity<LQP>& qty, RoundModel::Up) {
