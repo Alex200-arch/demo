@@ -24,12 +24,15 @@ struct RoundModel {
     struct Near {};
 };
 
-/*
-    ShortDecimal and LongDecimal
-    Basic Function
-        comparison: ==, !=, <, <=, >, >=
-        arithmetic: +, +=, -, -=
-*/
+template<uint P>
+class Price;
+
+template<uint P>
+class ShortQuantity;
+
+template<uint P>
+class LongQuantity;
+
 template<uint Precision, typename Derived>
 class ShortDecimal {
 protected:
@@ -238,6 +241,55 @@ public:
             throw std::overflow_error("Division overflow");
         }
         return Derived(static_cast<int64_t>(result));
+    }
+
+    int64_t DivToInt(const Derived& rhs, RoundModel::Up) const {
+        int64_t rhs_raw = rhs.GetRaw();
+        if (rhs_raw == 0) {
+            throw std::invalid_argument("Division by zero");
+        }
+        const bool same_sign = (value > 0) == (rhs_raw > 0);
+        const __int128_t value_128 = static_cast<__int128_t>(value);
+        const __int128_t rhs_128 = static_cast<__int128_t>(rhs_raw);
+        const __int128_t adjusted = (10 * value_128) + (same_sign > 0 ? (9*rhs_128) : -(9*rhs_128));
+        __int128_t result = adjusted / (10 * rhs_128);
+        
+        if (result > INT64_MAX || result < INT64_MIN) {
+            throw std::overflow_error("Division overflow");
+        }
+        return static_cast<int64_t>(result);
+    }
+    
+    int64_t DivToInt(const Derived& rhs, RoundModel::Down) const {
+        int64_t rhs_raw = rhs.GetRaw();
+        if (rhs_raw == 0) {
+            throw std::invalid_argument("Division by zero");
+        }
+        const __int128_t value_128 = static_cast<__int128_t>(value);
+        const __int128_t rhs_128 = static_cast<__int128_t>(rhs_raw);
+        __int128_t result = value_128 / rhs_128;
+    
+        if (result > INT64_MAX || result < INT64_MIN) {
+            throw std::overflow_error("Division overflow");
+        }
+        return static_cast<int64_t>(result);
+    }
+    
+    int64_t DivToInt(const Derived& rhs, RoundModel::Near) const {
+        int64_t rhs_raw = rhs.GetRaw();
+        if (rhs_raw == 0) {
+            throw std::invalid_argument("Division by zero");
+        }
+        const bool same_sign = (value > 0) == (rhs_raw > 0);
+        const __int128_t value_128 = static_cast<__int128_t>(value);
+        const __int128_t rhs_128 = static_cast<__int128_t>(rhs_raw);
+        const __int128_t adjusted = (10 * value_128) + (same_sign > 0 ? (5*rhs_128) : -(5*rhs_128));
+        __int128_t result = adjusted / (10 * rhs_128);
+        
+        if (result > INT64_MAX || result < INT64_MIN) {
+            throw std::overflow_error("Division overflow");
+        }
+        return static_cast<int64_t>(result);
     }
 
     Derived& operator+=(const Derived& rhs) { 
@@ -540,6 +592,55 @@ public:
         return Derived({static_cast<int64_t>(integer), static_cast<int64_t>(decimal)});
     }
 
+    int64_t DivToInt(const Derived& rhs, RoundModel::Up) {
+        LongDecimalRaw rhs_raw = rhs.GetRaw();
+        __int128_t rhs_total = static_cast<__int128_t>(rhs_raw.integer) * FACTOR + rhs_raw.decimal;
+        if (rhs_total == 0) {
+            throw std::invalid_argument("Division by zero");
+        }
+        __int128_t value_total = static_cast<__int128_t>(value.integer) * FACTOR + value.decimal;
+        const bool same_sign = (value_total > 0) == (rhs_total > 0);
+        const __int128_t adjusted = (10 * value_total) + (same_sign > 0 ? (9*rhs_total) : -(9*rhs_total));
+        __int128_t result = adjusted / (10 * rhs_total);
+        
+        if (result > INT64_MAX || result < INT64_MIN) {
+            throw std::overflow_error("Division overflow");
+        }
+        return static_cast<int64_t>(result);
+    }
+    
+    int64_t DivToInt(const Derived& rhs, RoundModel::Down) {
+        LongDecimalRaw rhs_raw = rhs.GetRaw();
+        __int128_t rhs_total = static_cast<__int128_t>(rhs_raw.integer) * FACTOR + rhs_raw.decimal;
+        if (rhs_total == 0) {
+            throw std::invalid_argument("Division by zero");
+        }
+        __int128_t value_total = static_cast<__int128_t>(value.integer) * FACTOR + value.decimal;
+        __int128_t result = value_total / rhs_total;
+    
+        if (result > INT64_MAX || result < INT64_MIN) {
+            throw std::overflow_error("Division overflow");
+        }
+        return static_cast<int64_t>(result);
+    }
+    
+    int64_t DivToInt(const Derived& rhs, RoundModel::Near) {
+        LongDecimalRaw rhs_raw = rhs.GetRaw();
+        __int128_t rhs_total = static_cast<__int128_t>(rhs_raw.integer) * FACTOR + rhs_raw.decimal;
+        if (rhs_total == 0) {
+            throw std::invalid_argument("Division by zero");
+        }
+        __int128_t value_total = static_cast<__int128_t>(value.integer) * FACTOR + value.decimal;
+        const bool same_sign = (value_total > 0) == (rhs_total > 0);
+        const __int128_t adjusted = (10 * value_total) + (same_sign > 0 ? (5*rhs_total) : -(5*rhs_total));
+        __int128_t result = adjusted / (10 * rhs_total);
+        
+        if (result > INT64_MAX || result < INT64_MIN) {
+            throw std::overflow_error("Division overflow");
+        }
+        return static_cast<int64_t>(result);
+    }
+
     Derived& operator+=(const Derived& rhs) {
         *this = *this + rhs;
         return static_cast<Derived&>(*this);
@@ -569,6 +670,126 @@ template<uint P>
 class Price : public ShortDecimal<P, Price<P>> {
 public:
     explicit Price(int64_t raw_value) : ShortDecimal<P, Price>(raw_value) {}
+
+    // Px = Px * Qty (Qty: Short and Long. Round: Up, Down and Near)
+    template<uint SQP>
+    Price MulQty(const ShortQuantity<SQP>& qty, RoundModel::Up) const {
+        int64_t price_raw = this->GetRaw();
+        int64_t qty_raw = qty.GetRaw();
+    
+        __int128_t product = static_cast<__int128_t>(price_raw) * static_cast<__int128_t>(qty_raw);
+    
+        if constexpr (SQP > 0) {
+            static constexpr __int128_t adjust = PowerOfTen<SQP>::value - PowerOfTen<SQP - 1>::value;
+            product += (product > 0) ? adjust : -adjust;
+            product /= PowerOfTen<SQP>::value;
+        }
+        
+        if (product > INT64_MAX || product < INT64_MIN) {
+            throw std::overflow_error("Multiplication result overflow");
+        }
+    
+        return Price::FromRaw(static_cast<int64_t>(product));
+    }
+
+    template<uint SQP>
+    Price MulQty(const ShortQuantity<SQP>& qty, RoundModel::Down) const {
+        int64_t price_raw = this->GetRaw();
+        int64_t qty_raw = qty.GetRaw();
+    
+        __int128_t product = static_cast<__int128_t>(price_raw) * static_cast<__int128_t>(qty_raw);
+    
+        if constexpr (SQP > 0) {
+            product /= PowerOfTen<SQP>::value;
+        }
+        
+        if (product > INT64_MAX || product < INT64_MIN) {
+            throw std::overflow_error("Multiplication result overflow");
+        }
+    
+        return Price::FromRaw(static_cast<int64_t>(product));
+    }
+
+    template<uint SQP>
+    Price MulQty(const ShortQuantity<SQP>& qty, RoundModel::Near) const {
+        int64_t price_raw = this->GetRaw();
+        int64_t qty_raw = qty.GetRaw();
+    
+        __int128_t product = static_cast<__int128_t>(price_raw) * static_cast<__int128_t>(qty_raw);
+    
+        if constexpr (SQP > 0) {
+            static constexpr __int128_t adjust = PowerOfTen<SQP>::value / 2;
+            product += (product > 0) ? adjust : -adjust;
+            product /= PowerOfTen<SQP>::value;
+        }
+        
+        if (product > INT64_MAX || product < INT64_MIN) {
+            throw std::overflow_error("Multiplication result overflow");
+        }
+    
+        return Price::FromRaw(static_cast<int64_t>(product));
+    }
+
+    template<uint LQP>
+    Price MulQty(const LongQuantity<LQP>& qty, RoundModel::Up) {
+        int64_t price_raw = this->GetRaw();
+        LongDecimalRaw qty_raw = qty.GetRaw();
+        __int128_t quantity_total = static_cast<__int128_t>(qty_raw.integer) * PowerOfTen<LQP>::value + qty_raw.decimal;
+        
+        __int128_t product = static_cast<__int128_t>(price_raw) * quantity_total;
+        
+        if constexpr (LQP > 0) {
+            static constexpr __int128_t adjust = PowerOfTen<LQP>::value - PowerOfTen<LQP - 1>::value;
+            product += (product > 0) ? adjust : -adjust;
+            product /= PowerOfTen<LQP>::value;
+        }
+        
+        if (product > INT64_MAX || product < INT64_MIN) {
+            throw std::overflow_error("Multiplication result overflow");
+        }
+        
+        return Price::FromRaw(static_cast<int64_t>(product));
+    }
+
+    template<uint LQP>
+    Price MulQty(const LongQuantity<LQP>& qty, RoundModel::Down) {
+        int64_t price_raw = this->GetRaw();
+        LongDecimalRaw qty_raw = qty.GetRaw();
+        __int128_t quantity_total = static_cast<__int128_t>(qty_raw.integer) * PowerOfTen<LQP>::value + qty_raw.decimal;
+        
+        __int128_t product = static_cast<__int128_t>(price_raw) * quantity_total;
+        
+        if constexpr (LQP > 0) {
+            product /= PowerOfTen<LQP>::value;
+        }
+        
+        if (product > INT64_MAX || product < INT64_MIN) {
+            throw std::overflow_error("Multiplication result overflow");
+        }
+    
+        return Price::FromRaw(static_cast<int64_t>(product));
+    }
+
+    template<uint LQP>
+    Price MulQty(const LongQuantity<LQP>& qty, RoundModel::Near) {
+        int64_t price_raw = this->GetRaw();
+        LongDecimalRaw qty_raw = qty.GetRaw();
+        __int128_t quantity_total = static_cast<__int128_t>(qty_raw.integer) * PowerOfTen<LQP>::value + qty_raw.decimal;
+        
+        __int128_t product = static_cast<__int128_t>(price_raw) * quantity_total;
+        
+        if constexpr (LQP > 0) {
+            static constexpr __int128_t adjust = PowerOfTen<LQP>::value / 2;
+            product += (product > 0) ? adjust : -adjust;
+            product /= PowerOfTen<LQP>::value;
+        }
+        
+        if (product > INT64_MAX || product < INT64_MIN) {
+            throw std::overflow_error("Multiplication result overflow");
+        }
+    
+        return Price::FromRaw(static_cast<int64_t>(product));
+    }
 };
 
 template<uint P>
@@ -581,127 +802,20 @@ template<uint P>
 class LongQuantity : public LongDecimal<P, LongQuantity<P>> {
 public:
     explicit LongQuantity(LongDecimalRaw raw_value) : LongDecimal<P, LongQuantity>(raw_value) {}
+
 };
 
-// Px = Px * Qty (Qty: Short and Long. Round: Up, Down and Near)
-template<uint PP, uint SQP>
-Price<PP> PxMulQty(const Price<PP>& px, const ShortQuantity<SQP>& qty, RoundModel::Up) {
-    int64_t price_raw = px.GetRaw();
-    int64_t qty_raw = qty.GetRaw();
 
-    __int128_t product = static_cast<__int128_t>(price_raw) * static_cast<__int128_t>(qty_raw);
 
-    if constexpr (SQP > 0) {
-        static constexpr __int128_t adjust = PowerOfTen<SQP>::value - PowerOfTen<SQP - 1>::value;
-        product += (product > 0) ? adjust : -adjust;
-        product /= PowerOfTen<SQP>::value;
-    }
-    
-    if (product > INT64_MAX || product < INT64_MIN) {
-        throw std::overflow_error("Multiplication result overflow");
-    }
 
-    return Price<PP>::FromRaw(static_cast<int64_t>(product));
-}
 
-template<uint PP, uint SQP>
-Price<PP> PxMulQty(const Price<PP>& px, const ShortQuantity<SQP>& qty, RoundModel::Down) {
-    int64_t price_raw = px.GetRaw();
-    int64_t qty_raw = qty.GetRaw();
 
-    __int128_t product = static_cast<__int128_t>(price_raw) * static_cast<__int128_t>(qty_raw);
 
-    if constexpr (SQP > 0) {
-        product /= PowerOfTen<SQP>::value;
-    }
-    
-    if (product > INT64_MAX || product < INT64_MIN) {
-        throw std::overflow_error("Multiplication result overflow");
-    }
 
-    return Price<PP>::FromRaw(static_cast<int64_t>(product));
-}
 
-template<uint PP, uint SQP>
-Price<PP> PxMulQty(const Price<PP>& px, const ShortQuantity<SQP>& qty, RoundModel::Near) {
-    int64_t price_raw = px.GetRaw();
-    int64_t qty_raw = qty.GetRaw();
 
-    __int128_t product = static_cast<__int128_t>(price_raw) * static_cast<__int128_t>(qty_raw);
 
-    if constexpr (SQP > 0) {
-        static constexpr __int128_t adjust = PowerOfTen<SQP>::value / 2;
-        product += (product > 0) ? adjust : -adjust;
-        product /= PowerOfTen<SQP>::value;
-    }
-    
-    if (product > INT64_MAX || product < INT64_MIN) {
-        throw std::overflow_error("Multiplication result overflow");
-    }
 
-    return Price<PP>::FromRaw(static_cast<int64_t>(product));
-}
-
-template<uint PP, uint LQP>
-Price<PP> PxMulQty(const Price<PP>& px, const LongQuantity<LQP>& qty, RoundModel::Up) {
-    int64_t price_raw = px.GetRaw();
-    LongDecimalRaw qty_raw = qty.GetRaw();
-    __int128_t quantity_total = static_cast<__int128_t>(qty_raw.integer) * PowerOfTen<LQP>::value + qty_raw.decimal;
-    
-    __int128_t product = static_cast<__int128_t>(price_raw) * quantity_total;
-    
-    if constexpr (LQP > 0) {
-        static constexpr __int128_t adjust = PowerOfTen<LQP>::value - PowerOfTen<LQP - 1>::value;
-        product += (product > 0) ? adjust : -adjust;
-        product /= PowerOfTen<LQP>::value;
-    }
-    
-    if (product > INT64_MAX || product < INT64_MIN) {
-        throw std::overflow_error("Multiplication result overflow");
-    }
-    
-    return Price<PP>::FromRaw(static_cast<int64_t>(product));
-}
-
-template<uint PP, uint LQP>
-Price<PP> PxMulQty(const Price<PP>& px, const LongQuantity<LQP>& qty, RoundModel::Down) {
-    int64_t price_raw = px.GetRaw();
-    LongDecimalRaw qty_raw = qty.GetRaw();
-    __int128_t quantity_total = static_cast<__int128_t>(qty_raw.integer) * PowerOfTen<LQP>::value + qty_raw.decimal;
-    
-    __int128_t product = static_cast<__int128_t>(price_raw) * quantity_total;
-    
-    if constexpr (LQP > 0) {
-        product /= PowerOfTen<LQP>::value;
-    }
-    
-    if (product > INT64_MAX || product < INT64_MIN) {
-        throw std::overflow_error("Multiplication result overflow");
-    }
-
-    return Price<PP>::FromRaw(static_cast<int64_t>(product));
-}
-
-template<uint PP, uint LQP>
-Price<PP> PxMulQty(const Price<PP>& px, const LongQuantity<LQP>& qty, RoundModel::Near) {
-    int64_t price_raw = px.GetRaw();
-    LongDecimalRaw qty_raw = qty.GetRaw();
-    __int128_t quantity_total = static_cast<__int128_t>(qty_raw.integer) * PowerOfTen<LQP>::value + qty_raw.decimal;
-    
-    __int128_t product = static_cast<__int128_t>(price_raw) * quantity_total;
-    
-    if constexpr (LQP > 0) {
-        static constexpr __int128_t adjust = PowerOfTen<LQP>::value / 2;
-        product += (product > 0) ? adjust : -adjust;
-        product /= PowerOfTen<LQP>::value;
-    }
-    
-    if (product > INT64_MAX || product < INT64_MIN) {
-        throw std::overflow_error("Multiplication result overflow");
-    }
-
-    return Price<PP>::FromRaw(static_cast<int64_t>(product));
-}
 
 // SQty = Px / Px (Round: Up, Down and Near)
 template<uint PP, uint SQP>
@@ -759,6 +873,16 @@ ShortQuantity<SQP> SQtyPxDivPx(const Price<PP>& px1, const Price<PP>& px2, Round
     return ShortQuantity<SQP>(static_cast<int64_t>(result));
 }
 
+
+
+
+
+
+
+
+
+
+
 // LQty = Px / Px (Round: Up, Down and Near)
 template<uint PP, uint LQP>
 LongQuantity<LQP> LQtyPxDivPx(const Price<PP>& px1, const Price<PP>& px2, RoundModel::Up) {
@@ -812,61 +936,20 @@ LongQuantity<LQP> LQtyPxDivPx(const Price<PP>& px1, const Price<PP>& px2, RoundM
     return LongQuantity<LQP>({static_cast<int64_t>(integer), static_cast<int64_t>(decimal)});
 }
 
-// Int = Px / Px (Round: Up, Down and Near)
-template<uint PP>
-int64_t IntPxDivPx(const Price<PP>& px1, const Price<PP>& px2, RoundModel::Up) {
-    int64_t px2_raw = px2.GetRaw();
-    if (px2_raw == 0) {
-        throw std::invalid_argument("Division by zero");
-    }
-    int64_t px1_raw = px1.GetRaw();
-    const bool same_sign = (px1_raw > 0) == (px2_raw > 0);
-    const __int128_t px1_128 = static_cast<__int128_t>(px1_raw);
-    const __int128_t px2_128 = static_cast<__int128_t>(px2_raw);
-    const __int128_t adjusted = (10 * px1_128) + (same_sign > 0 ? (9*px2_128) : -(9*px2_128));
-    __int128_t result = adjusted / (10 * px2_128);
-    
-    if (result > INT64_MAX || result < INT64_MIN) {
-        throw std::overflow_error("Division overflow");
-    }
-    return static_cast<int64_t>(result);
-}
 
-template<uint PP>
-int64_t IntPxDivPx(const Price<PP>& px1, const Price<PP>& px2, RoundModel::Down) {
-    int64_t px2_raw = px2.GetRaw();
-    if (px2_raw == 0) {
-        throw std::invalid_argument("Division by zero");
-    }
-    int64_t px1_raw = px1.GetRaw();
-    const __int128_t px1_128 = static_cast<__int128_t>(px1_raw);
-    const __int128_t px2_128 = static_cast<__int128_t>(px2_raw);
-    __int128_t result = px1_128 / px2_128;
 
-    if (result > INT64_MAX || result < INT64_MIN) {
-        throw std::overflow_error("Division overflow");
-    }
-    return static_cast<int64_t>(result);
-}
 
-template<uint PP>
-int64_t IntPxDivPx(const Price<PP>& px1, const Price<PP>& px2, RoundModel::Near) {
-    int64_t px2_raw = px2.GetRaw();
-    if (px2_raw == 0) {
-        throw std::invalid_argument("Division by zero");
-    }
-    int64_t px1_raw = px1.GetRaw();
-    const bool same_sign = (px1_raw > 0) == (px2_raw > 0);
-    const __int128_t px1_128 = static_cast<__int128_t>(px1_raw);
-    const __int128_t px2_128 = static_cast<__int128_t>(px2_raw);
-    const __int128_t adjusted = (10 * px1_128) + (same_sign > 0 ? (5*px2_128) : -(5*px2_128));
-    __int128_t result = adjusted / (10 * px2_128);
-    
-    if (result > INT64_MAX || result < INT64_MIN) {
-        throw std::overflow_error("Division overflow");
-    }
-    return static_cast<int64_t>(result);
-}
+
+
+
+
+
+
+
+
+
+
+
 
 // Px = Px / Qty (Qty: Short and Long. Round: Up, Down and Near)
 template<uint PP, uint SQP>
@@ -979,117 +1062,6 @@ Price<PP> PxPxDivQty(const Price<PP>& px, const LongQuantity<LQP>& qty, RoundMod
         throw std::overflow_error("Division overflow");
     }
     return Price<PP>(static_cast<int64_t>(result));
-}
-
-// Int = Qty / Qty (Qty: Short and Long. Round: Up, Down and Near)
-template<uint SQP>
-int64_t IntQtyDivQty(const ShortQuantity<SQP>& qty1, const ShortQuantity<SQP>& qty2, RoundModel::Up) {
-    int64_t qty2_raw = qty2.GetRaw();
-    if (qty2_raw == 0) {
-        throw std::invalid_argument("Division by zero");
-    }
-    int64_t qty1_raw = qty1.GetRaw();
-    const bool same_sign = (qty1_raw > 0) == (qty2_raw > 0);
-    const __int128_t qty1_128 = static_cast<__int128_t>(qty1_raw);
-    const __int128_t qty2_128 = static_cast<__int128_t>(qty2_raw);
-    const __int128_t adjusted = (10 * qty1_128) + (same_sign > 0 ? (9*qty2_128) : -(9*qty2_128));
-    __int128_t result = adjusted / (10 * qty2_128);
-    
-    if (result > INT64_MAX || result < INT64_MIN) {
-        throw std::overflow_error("Division overflow");
-    }
-    return static_cast<int64_t>(result);
-}
-
-template<uint SQP>
-int64_t IntQtyDivQty(const ShortQuantity<SQP>& qty1, const ShortQuantity<SQP>& qty2, RoundModel::Down) {
-    int64_t qty2_raw = qty2.GetRaw();
-    if (qty2_raw == 0) {
-        throw std::invalid_argument("Division by zero");
-    }
-    int64_t qty1_raw = qty1.GetRaw();
-    const __int128_t qty1_128 = static_cast<__int128_t>(qty1_raw);
-    const __int128_t qty2_128 = static_cast<__int128_t>(qty2_raw);
-    __int128_t result = qty1_128 / qty2_128;
-
-    if (result > INT64_MAX || result < INT64_MIN) {
-        throw std::overflow_error("Division overflow");
-    }
-    return static_cast<int64_t>(result);
-}
-
-template<uint SQP>
-int64_t IntQtyDivQty(const ShortQuantity<SQP>& qty1, const ShortQuantity<SQP>& qty2, RoundModel::Near) {
-    int64_t qty2_raw = qty2.GetRaw();
-    if (qty2_raw == 0) {
-        throw std::invalid_argument("Division by zero");
-    }
-    int64_t qty1_raw = qty1.GetRaw();
-    const bool same_sign = (qty1_raw > 0) == (qty2_raw > 0);
-    const __int128_t qty1_128 = static_cast<__int128_t>(qty1_raw);
-    const __int128_t qty2_128 = static_cast<__int128_t>(qty2_raw);
-    const __int128_t adjusted = (10 * qty1_128) + (same_sign > 0 ? (5*qty2_128) : -(5*qty2_128));
-    __int128_t result = adjusted / (10 * qty2_128);
-    
-    if (result > INT64_MAX || result < INT64_MIN) {
-        throw std::overflow_error("Division overflow");
-    }
-    return static_cast<int64_t>(result);
-}
-
-template<uint LQP>
-int64_t IntQtyDivQty(const LongQuantity<LQP>& qty1, const LongQuantity<LQP>& qty2, RoundModel::Up) {
-    LongDecimalRaw qty2_raw = qty2.GetRaw();
-    __int128_t qty2_total = static_cast<__int128_t>(qty2_raw.integer) * PowerOfTen<LQP>::value + qty2_raw.decimal;
-    if (qty2_total == 0) {
-        throw std::invalid_argument("Division by zero");
-    }
-    LongDecimalRaw qty1_raw = qty1.GetRaw();
-    __int128_t qty1_total = static_cast<__int128_t>(qty1_raw.integer) * PowerOfTen<LQP>::value + qty1_raw.decimal;
-    const bool same_sign = (qty1_total > 0) == (qty2_total > 0);
-    const __int128_t adjusted = (10 * qty1_total) + (same_sign > 0 ? (9*qty2_total) : -(9*qty2_total));
-    __int128_t result = adjusted / (10 * qty2_total);
-    
-    if (result > INT64_MAX || result < INT64_MIN) {
-        throw std::overflow_error("Division overflow");
-    }
-    return static_cast<int64_t>(result);
-}
-
-template<uint LQP>
-int64_t IntQtyDivQty(const LongQuantity<LQP>& qty1, const LongQuantity<LQP>& qty2, RoundModel::Down) {
-    LongDecimalRaw qty2_raw = qty2.GetRaw();
-    __int128_t qty2_total = static_cast<__int128_t>(qty2_raw.integer) * PowerOfTen<LQP>::value + qty2_raw.decimal;
-    if (qty2_total == 0) {
-        throw std::invalid_argument("Division by zero");
-    }
-    LongDecimalRaw qty1_raw = qty1.GetRaw();
-    __int128_t qty1_total = static_cast<__int128_t>(qty1_raw.integer) * PowerOfTen<LQP>::value + qty1_raw.decimal;
-    __int128_t result = qty1_total / qty2_total;
-
-    if (result > INT64_MAX || result < INT64_MIN) {
-        throw std::overflow_error("Division overflow");
-    }
-    return static_cast<int64_t>(result);
-}
-
-template<uint LQP>
-int64_t IntQtyDivQty(const LongQuantity<LQP>& qty1, const LongQuantity<LQP>& qty2, RoundModel::Near) {
-    LongDecimalRaw qty2_raw = qty2.GetRaw();
-    __int128_t qty2_total = static_cast<__int128_t>(qty2_raw.integer) * PowerOfTen<LQP>::value + qty2_raw.decimal;
-    if (qty2_total == 0) {
-        throw std::invalid_argument("Division by zero");
-    }
-    LongDecimalRaw qty1_raw = qty1.GetRaw();
-    __int128_t qty1_total = static_cast<__int128_t>(qty1_raw.integer) * PowerOfTen<LQP>::value + qty1_raw.decimal;
-    const bool same_sign = (qty1_total > 0) == (qty2_total > 0);
-    const __int128_t adjusted = (10 * qty1_total) + (same_sign > 0 ? (5*qty2_total) : -(5*qty2_total));
-    __int128_t result = adjusted / (10 * qty2_total);
-    
-    if (result > INT64_MAX || result < INT64_MIN) {
-        throw std::overflow_error("Division overflow");
-    }
-    return static_cast<int64_t>(result);
 }
 
 #endif
