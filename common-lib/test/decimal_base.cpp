@@ -674,25 +674,25 @@ TEST(SQtyPxDivPxTest, RoundPositive) {
     {
         Price<0> px1(300);
         Price<0> px2(34);
-        auto qty = SQtyPxDivPx<0, 6>(px1, px2, RoundModel::Up());
+        auto qty = px1.DivPxToSQty<6>(px2, RoundModel::Up());
         EXPECT_EQ(qty.GetRaw(), 8823530);  // 300 / 34 = 8.823529 41176470 -> UP -> 8.823530
     }
     {
         Price<0> px1(300);
         Price<0> px2(34);
-        auto qty = SQtyPxDivPx<0, 6>(px1, px2, RoundModel::Down());
+        auto qty = px1.DivPxToSQty<6>(px2, RoundModel::Down());
         EXPECT_EQ(qty.GetRaw(), 8823529);  // 300 / 34 = 8.823529 41176470 -> DOWN -> 8.823529
     }
     {
         Price<0> px1(300);
         Price<0> px2(34);
-        auto qty = SQtyPxDivPx<0, 6>(px1, px2, RoundModel::Near());
+        auto qty = px1.DivPxToSQty<6>(px2, RoundModel::Near());
         EXPECT_EQ(qty.GetRaw(), 8823529);  // 300 / 34 = 8.823529 41176470 -> NEAR -> 8.823529
     }
     {
         Price<0> px1(300);
         Price<0> px2(35);
-        auto qty = SQtyPxDivPx<0, 6>(px1, px2, RoundModel::Near());
+        auto qty = px1.DivPxToSQty<6>(px2, RoundModel::Near());
         EXPECT_EQ(qty.GetRaw(), 8571429);  // 300 / 35 = 8.571428 571428571 -> NEAR -> 8.571429
     }
 }
@@ -701,25 +701,25 @@ TEST(SQtyPxDivPxTest, RoundNegative) {
     {
         Price<0> px1(300);
         Price<0> px2(-34);
-        auto qty = SQtyPxDivPx<0, 6>(px1, px2, RoundModel::Up());
+        auto qty = px1.DivPxToSQty<6>(px2, RoundModel::Up());
         EXPECT_EQ(qty.GetRaw(), -8823530);  // 300 / 34 = 8.823529 41176470 -> UP -> 8.823530
     }
     {
         Price<0> px1(300);
         Price<0> px2(-34);
-        auto qty = SQtyPxDivPx<0, 6>(px1, px2, RoundModel::Down());
+        auto qty = px1.DivPxToSQty<6>(px2, RoundModel::Down());
         EXPECT_EQ(qty.GetRaw(), -8823529);  // 300 / 34 = 8.823529 41176470 -> DOWN -> 8.823529
     }
     {
         Price<0> px1(300);
         Price<0> px2(-34);
-        auto qty = SQtyPxDivPx<0, 6>(px1, px2, RoundModel::Near());
+        auto qty = px1.DivPxToSQty<6>(px2, RoundModel::Near());
         EXPECT_EQ(qty.GetRaw(), -8823529);  // 300 / 34 = 8.823529 41176470 -> NEAR -> 8.823529
     }
     {
         Price<0> px1(300);
         Price<0> px2(-35);
-        auto qty = SQtyPxDivPx<0, 6>(px1, px2, RoundModel::Near());
+        auto qty = px1.DivPxToSQty<6>(px2, RoundModel::Near());
         EXPECT_EQ(qty.GetRaw(), -8571429);  // 300 / 35 = 8.571428 571428571 -> NEAR -> 8.571429
     }
 }

@@ -24,13 +24,13 @@ struct RoundModel {
     struct Near {};
 };
 
-template<uint P>
+template<uint>
 class Price;
 
-template<uint P>
+template<uint>
 class ShortQuantity;
 
-template<uint P>
+template<uint>
 class LongQuantity;
 
 template<uint Precision, typename Derived>
@@ -55,6 +55,58 @@ protected:
     }
 
     explicit ShortDecimal(int64_t raw_value) : value(raw_value) {}
+
+    template<template<uint> class RT, uint RTP>
+    RT<RTP> DivToShortDecimal(const Derived& rhs, RoundModel::Up) {
+        int64_t rhs_raw = rhs.GetRaw();
+        if (rhs_raw == 0) {
+            throw std::invalid_argument("Division by zero");
+        }
+        const bool same_sign = (value > 0) == (rhs_raw > 0);
+        const __int128_t value_128 = static_cast<__int128_t>(value) * PowerOfTen<RTP>::value;
+        const __int128_t rhs_128 = static_cast<__int128_t>(rhs_raw);
+        const __int128_t adjusted = (10 * value_128) + (same_sign > 0 ? (9*rhs_128) : -(9*rhs_128));
+        __int128_t result = adjusted / (10 * rhs_128);
+        
+        if (result > INT64_MAX || result < INT64_MIN) {
+            throw std::overflow_error("Division overflow");
+        }
+        return RT<RTP>(static_cast<int64_t>(result));
+    }
+
+    template<template<uint> class RT, uint RTP>
+    RT<RTP> DivToShortDecimal(const Derived& rhs, RoundModel::Down) {
+        int64_t rhs_raw = rhs.GetRaw();
+        if (rhs_raw == 0) {
+            throw std::invalid_argument("Division by zero");
+        }
+        const __int128_t value_128 = static_cast<__int128_t>(value) * PowerOfTen<RTP>::value;
+        const __int128_t rhs_128 = static_cast<__int128_t>(rhs_raw);
+        __int128_t result = value_128 / rhs_128;
+        
+        if (result > INT64_MAX || result < INT64_MIN) {
+            throw std::overflow_error("Division overflow");
+        }
+        return RT<RTP>(static_cast<int64_t>(result));
+    }
+
+    template<template<uint> class RT, uint RTP>
+    RT<RTP> DivToShortDecimal(const Derived& rhs, RoundModel::Near) {
+        int64_t rhs_raw = rhs.GetRaw();
+        if (rhs_raw == 0) {
+            throw std::invalid_argument("Division by zero");
+        }
+        const bool same_sign = (value > 0) == (rhs_raw > 0);
+        const __int128_t value_128 = static_cast<__int128_t>(value) * PowerOfTen<RTP>::value;
+        const __int128_t rhs_128 = static_cast<__int128_t>(rhs_raw);
+        const __int128_t adjusted = (10 * value_128) + (same_sign > 0 ? (5*rhs_128) : -(5*rhs_128));
+        __int128_t result = adjusted / (10 * rhs_128);
+        
+        if (result > INT64_MAX || result < INT64_MIN) {
+            throw std::overflow_error("Division overflow");
+        }
+        return RT<RTP>(static_cast<int64_t>(result));
+    }
 
 public:
     static Derived FromRaw(int64_t raw_value) {
@@ -790,6 +842,21 @@ public:
     
         return Price::FromRaw(static_cast<int64_t>(product));
     }
+
+    template<uint SQP>
+    ShortQuantity<SQP> DivPxToSQty(const Price& px2, RoundModel::Up) {
+        return DivToShortDecimal<ShortQuantity, SQP>(px2, RoundModel::Up());
+    }
+
+    template<uint SQP>
+    ShortQuantity<SQP> DivPxToSQty(const Price& px2, RoundModel::Down) {
+        return DivToShortDecimal<ShortQuantity, SQP>(px2, RoundModel::Down());
+    }
+
+    template<uint SQP>
+    ShortQuantity<SQP> DivPxToSQty(const Price& px2, RoundModel::Near) {
+        return DivToShortDecimal<ShortQuantity, SQP>(px2, RoundModel::Near());
+    }
 };
 
 template<uint P>
@@ -816,62 +883,6 @@ public:
 
 
 
-
-// SQty = Px / Px (Round: Up, Down and Near)
-template<uint PP, uint SQP>
-ShortQuantity<SQP> SQtyPxDivPx(const Price<PP>& px1, const Price<PP>& px2, RoundModel::Up) {
-    int64_t px2_raw = px2.GetRaw();
-    if (px2_raw == 0) {
-        throw std::invalid_argument("Division by zero");
-    }
-    int64_t px1_raw = px1.GetRaw();
-    const bool same_sign = (px1_raw > 0) == (px2_raw > 0);
-    const __int128_t px1_128 = static_cast<__int128_t>(px1_raw) * PowerOfTen<SQP>::value;
-    const __int128_t px2_128 = static_cast<__int128_t>(px2_raw);
-    const __int128_t adjusted = (10 * px1_128) + (same_sign > 0 ? (9*px2_128) : -(9*px2_128));
-    __int128_t result = adjusted / (10 * px2_128);
-    
-    if (result > INT64_MAX || result < INT64_MIN) {
-        throw std::overflow_error("Division overflow");
-    }
-    return ShortQuantity<SQP>(static_cast<int64_t>(result));
-}
-
-template<uint PP, uint SQP>
-ShortQuantity<SQP> SQtyPxDivPx(const Price<PP>& px1, const Price<PP>& px2, RoundModel::Down) {
-    int64_t px2_raw = px2.GetRaw();
-    if (px2_raw == 0) {
-        throw std::invalid_argument("Division by zero");
-    }
-    int64_t px1_raw = px1.GetRaw();
-    const __int128_t px1_128 = static_cast<__int128_t>(px1_raw) * PowerOfTen<SQP>::value;
-    const __int128_t px2_128 = static_cast<__int128_t>(px2_raw);
-    __int128_t result = px1_128 / px2_128;
-    
-    if (result > INT64_MAX || result < INT64_MIN) {
-        throw std::overflow_error("Division overflow");
-    }
-    return ShortQuantity<SQP>(static_cast<int64_t>(result));
-}
-
-template<uint PP, uint SQP>
-ShortQuantity<SQP> SQtyPxDivPx(const Price<PP>& px1, const Price<PP>& px2, RoundModel::Near) {
-    int64_t px2_raw = px2.GetRaw();
-    if (px2_raw == 0) {
-        throw std::invalid_argument("Division by zero");
-    }
-    int64_t px1_raw = px1.GetRaw();
-    const bool same_sign = (px1_raw > 0) == (px2_raw > 0);
-    const __int128_t px1_128 = static_cast<__int128_t>(px1_raw) * PowerOfTen<SQP>::value;
-    const __int128_t px2_128 = static_cast<__int128_t>(px2_raw);
-    const __int128_t adjusted = (10 * px1_128) + (same_sign > 0 ? (5*px2_128) : -(5*px2_128));
-    __int128_t result = adjusted / (10 * px2_128);
-    
-    if (result > INT64_MAX || result < INT64_MIN) {
-        throw std::overflow_error("Division overflow");
-    }
-    return ShortQuantity<SQP>(static_cast<int64_t>(result));
-}
 
 
 
