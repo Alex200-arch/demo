@@ -728,28 +728,28 @@ TEST(LQtyPxDivPxTest, RoundPositive) {
     {
         Price<2> px1(300);
         Price<2> px2(34);
-        auto qty = LQtyPxDivPx<2, 10>(px1, px2, RoundModel::Up());
+        auto qty = px1.DivPxToLQty<10>(px2, RoundModel::Up());
         EXPECT_EQ(qty.GetRaw().integer, 8);  // 300 / 34 = 8.8235294117 6470
         EXPECT_EQ(qty.GetRaw().decimal, 8235294118);
     }
     {
         Price<2> px1(300);
         Price<2> px2(34);
-        auto qty = LQtyPxDivPx<2, 10>(px1, px2, RoundModel::Down());
+        auto qty = px1.DivPxToLQty<10>(px2, RoundModel::Down());
         EXPECT_EQ(qty.GetRaw().integer, 8);  // 300 / 34 = 8.8235294117 6470
         EXPECT_EQ(qty.GetRaw().decimal, 8235294117);
     }
     {
         Price<2> px1(300);
         Price<2> px2(34);
-        auto qty = LQtyPxDivPx<2, 10>(px1, px2, RoundModel::Near());
+        auto qty = px1.DivPxToLQty<10>(px2, RoundModel::Near());
         EXPECT_EQ(qty.GetRaw().integer, 8);  // 300 / 34 = 8.8235294117 6470
         EXPECT_EQ(qty.GetRaw().decimal, 8235294118);
     }
     {
         Price<2> px1(300);
         Price<2> px2(35);
-        auto qty = LQtyPxDivPx<2, 10>(px1, px2, RoundModel::Near());
+        auto qty = px1.DivPxToLQty<10>(px2, RoundModel::Near());
         EXPECT_EQ(qty.GetRaw().integer, 8);  // 300 / 35 = 8.5714285714 28571
         EXPECT_EQ(qty.GetRaw().decimal, 5714285714);
     }
@@ -759,28 +759,28 @@ TEST(LQtyPxDivPxTest, RoundNegative) {
     {
         Price<2> px1(300);
         Price<2> px2(-34);
-        auto qty = LQtyPxDivPx<2, 10>(px1, px2, RoundModel::Up());
+        auto qty = px1.DivPxToLQty<10>(px2, RoundModel::Up());
         EXPECT_EQ(qty.GetRaw().integer, -8);  // 300 / 34 = 8.8235294117 6470
         EXPECT_EQ(qty.GetRaw().decimal, -8235294118);
     }
     {
         Price<2> px1(300);
         Price<2> px2(-34);
-        auto qty = LQtyPxDivPx<2, 10>(px1, px2, RoundModel::Down());
+        auto qty = px1.DivPxToLQty<10>(px2, RoundModel::Down());
         EXPECT_EQ(qty.GetRaw().integer, -8);  // 300 / 34 = 8.8235294117 6470
         EXPECT_EQ(qty.GetRaw().decimal, -8235294117);
     }
     {
         Price<2> px1(300);
         Price<2> px2(-34);
-        auto qty = LQtyPxDivPx<2, 10>(px1, px2, RoundModel::Near());
+        auto qty = px1.DivPxToLQty<10>(px2, RoundModel::Near());
         EXPECT_EQ(qty.GetRaw().integer, -8);  // 300 / 34 = 8.8235294117 6470
         EXPECT_EQ(qty.GetRaw().decimal, -8235294118);
     }
     {
         Price<2> px1(300);
         Price<2> px2(-35);
-        auto qty = LQtyPxDivPx<2, 10>(px1, px2, RoundModel::Near());
+        auto qty = px1.DivPxToLQty<10>(px2, RoundModel::Near());
         EXPECT_EQ(qty.GetRaw().integer, -8);  // 300 / 35 = 8.5714285714 28571
         EXPECT_EQ(qty.GetRaw().decimal, -5714285714);
     }
@@ -857,49 +857,49 @@ TEST(PxPxDivQtyTest, PxPxDivQtyLongRound) {
     {
         Price<3> px = Price<3>::FromRaw(1000); // 1.000
         LongQuantity<18> qty = LongQuantity<18>::FromRaw({3, 0}); // 3.000000000000000000
-        auto result = PxPxDivQty(px, qty, RoundModel::Up());
+        auto result = px.DivLQtyToPx(qty, RoundModel::Up());
         EXPECT_EQ(result.GetRaw(), 334); // 1.00 / 3.000000 = 0.3333... -> Up -> 0.334 (334)
     }
     {
         Price<3> px = Price<3>::FromRaw(1000); // 1.000
         LongQuantity<18> qty = LongQuantity<18>::FromRaw({-3, 0}); // 3.000000000000000000
-        auto result = PxPxDivQty(px, qty, RoundModel::Up());
+        auto result = px.DivLQtyToPx(qty, RoundModel::Up());
         EXPECT_EQ(result.GetRaw(), -334); // 1.00 / 3.000000 = 0.3333... -> Up -> 0.334 (334)
     }
     {
         Price<3> px = Price<3>::FromRaw(1000); // 1.000
         LongQuantity<18> qty = LongQuantity<18>::FromRaw({3, 0}); // 3.000000000000000000
-        auto result = PxPxDivQty(px, qty, RoundModel::Down());
+        auto result = px.DivLQtyToPx(qty, RoundModel::Down());
         EXPECT_EQ(result.GetRaw(), 333); // 1.00 / 3.000000 = 0.3333... -> Down -> 0.334 (333)
     }
     {
         Price<3> px = Price<3>::FromRaw(1000); // 1.000
         LongQuantity<18> qty = LongQuantity<18>::FromRaw({-3, 0}); // 3.000000000000000000
-        auto result = PxPxDivQty(px, qty, RoundModel::Down());
+        auto result = px.DivLQtyToPx(qty, RoundModel::Down());
         EXPECT_EQ(result.GetRaw(), -333); // 1.00 / 3.000000 = 0.3333... -> Down -> 0.333 (333)
     }
     {
         Price<3> px = Price<3>::FromRaw(1000); // 1.000
         LongQuantity<18> qty = LongQuantity<18>::FromRaw({3, 0}); // 3.000000000000000000
-        auto result = PxPxDivQty(px, qty, RoundModel::Near());
+        auto result = px.DivLQtyToPx(qty, RoundModel::Near());
         EXPECT_EQ(result.GetRaw(), 333); // 1.00 / 3.000000 = 0.3333... -> Near -> 0.334 (333)
     }
     {
         Price<3> px = Price<3>::FromRaw(1000); // 1.000
         LongQuantity<18> qty = LongQuantity<18>::FromRaw({-3, 0}); // 3.000000000000000000
-        auto result = PxPxDivQty(px, qty, RoundModel::Near());
+        auto result = px.DivLQtyToPx(qty, RoundModel::Near());
         EXPECT_EQ(result.GetRaw(), -333); // 1.00 / 3.000000 = 0.3333... -> Near -> 0.333 (333)
     }
     {
         Price<3> px = Price<3>::FromRaw(1000); // 1.000
         LongQuantity<18> qty = LongQuantity<18>::FromRaw({6, 0}); // 6.000000000000000000
-        auto result = PxPxDivQty(px, qty, RoundModel::Near());
+        auto result = px.DivLQtyToPx(qty, RoundModel::Near());
         EXPECT_EQ(result.GetRaw(), 167); // 1.00 / 6.000000 = 0.16666... -> Near -> 0.167 (167)
     }
     {
         Price<3> px = Price<3>::FromRaw(1000); // 1.000
         LongQuantity<18> qty = LongQuantity<18>::FromRaw({-6, 0}); // 6.000000000000000000
-        auto result = PxPxDivQty(px, qty, RoundModel::Near());
+        auto result = px.DivLQtyToPx(qty, RoundModel::Near());
         EXPECT_EQ(result.GetRaw(), -167); // 1.00 / 6.000000 = 0.16666... -> Near -> 0.167 (167)
     }
 }
@@ -914,7 +914,7 @@ TEST(PxPxDivQtyTest, PxPxDivQtyZeroDivisor) {
     {
         Price<2> px = Price<2>::FromRaw(100);
         LongQuantity<18> qty = LongQuantity<18>::FromRaw({0, 0});
-        EXPECT_THROW(PxPxDivQty(px, qty, RoundModel::Up()), std::invalid_argument);
+        EXPECT_THROW(px.DivLQtyToPx(qty, RoundModel::Up()), std::invalid_argument);
     }
 }
 
