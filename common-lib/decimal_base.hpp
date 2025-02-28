@@ -108,6 +108,47 @@ protected:
         return RT<RTP>(static_cast<int64_t>(result));
     }
 
+    template<template<uint> typename RT, uint NewP>
+    RT<NewP> IncreasePrecision() {
+        static_assert(NewP >= 0 && NewP <= 9, "New precision must be between 0 and 9.");
+        static_assert(Precision < NewP, "New precision must be greater than origin.");
+        __int128_t new_raw = static_cast<__int128_t>(value) * PowerOfTen<NewP - Precision>::value;
+        if (new_raw > INT64_MAX || new_raw < INT64_MIN) {
+            throw std::overflow_error("ConvertPrecision overflow");
+        }
+        return RT<NewP>::FromRaw(static_cast<int64_t>(new_raw));
+    }
+
+    template<template<uint> typename RT, uint NewP>
+    RT<NewP> DecreasePrecision(RoundModel::Up) {
+        static_assert(NewP >= 0 && NewP <= 9, "New precision must be between 0 and 9.");
+        static_assert(Precision > NewP, "New precision must be less than origin.");
+        constexpr int64_t precision_diff = PowerOfTen<Precision-NewP>::value;
+        const __int128_t value_128 = static_cast<__int128_t>(value);
+        const __int128_t adjusted = (10 * value_128) + (value > 0 ? (9*precision_diff) : -(9*precision_diff));
+        const __int128_t new_raw = adjusted / (10 * precision_diff);
+        return RT<NewP>::FromRaw(static_cast<int64_t>(new_raw));
+    }
+
+    template<template<uint> typename RT, uint NewP>
+    RT<NewP> DecreasePrecision(RoundModel::Down) {
+        static_assert(NewP >= 0 && NewP <= 9, "New precision must be between 0 and 9.");
+        static_assert(Precision > NewP, "New precision must be less than origin.");
+        constexpr int64_t precision_diff = PowerOfTen<Precision-NewP>::value;
+        return RT<NewP>::FromRaw(value/precision_diff);
+    }
+
+    template<template<uint> typename RT, uint NewP>
+    RT<NewP> DecreasePrecision(RoundModel::Near) {
+        static_assert(NewP >= 0 && NewP <= 9, "New precision must be between 0 and 9.");
+        static_assert(Precision > NewP, "New precision must be less than origin.");
+        constexpr int64_t precision_diff = PowerOfTen<Precision-NewP>::value;
+        const __int128_t value_128 = static_cast<__int128_t>(value);
+        const __int128_t adjusted = (10 * value_128) + (value > 0 ? (5*precision_diff) : -(5*precision_diff));
+        const __int128_t new_raw = adjusted / (10 * precision_diff);
+        return RT<NewP>::FromRaw(static_cast<int64_t>(new_raw));
+    }
+
 public:
     static Derived FromRaw(int64_t raw_value) {
         return Derived(raw_value);
@@ -385,6 +426,63 @@ protected:
                 throw std::invalid_argument("Positive or negative signs are not same");
             }
         }
+    }
+
+    template<template<uint> typename RT, uint NewP>
+    RT<NewP> IncreasePrecision() {
+        static_assert(NewP >= 0 && NewP <= 18, "New precision must be between 0 and 18.");
+        static_assert(Precision < NewP, "New precision must be greater than origin.");
+        const __int128_t new_decimal = static_cast<__int128_t>(value.decimal) * PowerOfTen<NewP - Precision>::value;
+        if (new_decimal > INT64_MAX || new_decimal < INT64_MIN) {
+            throw std::overflow_error("Decimal part overflow during conversion");
+        }
+        return RT<NewP>::FromRaw(value.integer, static_cast<int64_t>(new_decimal));
+    }
+
+    template<template<uint> typename RT, uint NewP>
+    RT<NewP> DecreasePrecision(RoundModel::Up) {
+        static_assert(NewP >= 0 && NewP <= 18, "New precision must be between 0 and 18.");
+        static_assert(Precision > NewP, "New precision must be less than origin.");
+        constexpr int64_t precision_diff = PowerOfTen<Precision-NewP>::value;
+        const __int128_t decimal_128 = static_cast<__int128_t>(value.decimal);
+        const __int128_t adjusted = (10 * decimal_128) + (Negative() ? -(9*precision_diff) : (9*precision_diff));
+        const __int128_t result = adjusted / (10 * precision_diff);
+        const __int128_t new_integer = value.integer + result / PowerOfTen<NewP>::value;
+        const __int128_t new_decimal = result % PowerOfTen<NewP>::value;
+        if (new_integer > INT64_MAX || new_integer < INT64_MIN) {
+            throw std::overflow_error("Integer part overflow during conversion");
+        }
+        if (new_decimal > INT64_MAX || new_decimal < INT64_MIN) {
+            throw std::overflow_error("Decimal part overflow during conversion");
+        }
+        return RT<NewP>::FromRaw(static_cast<int64_t>(new_integer), static_cast<int64_t>(new_decimal));
+    }
+
+    template<template<uint> typename RT, uint NewP>
+    RT<NewP> DecreasePrecision(RoundModel::Down) {
+        static_assert(NewP >= 0 && NewP <= 18, "New precision must be between 0 and 18.");
+        static_assert(Precision > NewP, "New precision must be less than origin.");
+        constexpr int64_t precision_diff = PowerOfTen<Precision-NewP>::value;
+        return RT<NewP>::FromRaw(value.integer, value.decimal / precision_diff);
+    }
+
+    template<template<uint> typename RT, uint NewP>
+    RT<NewP> DecreasePrecision(RoundModel::Near) {
+        static_assert(NewP >= 0 && NewP <= 18, "New precision must be between 0 and 18.");
+        static_assert(Precision > NewP, "New precision must be less than origin.");
+        constexpr int64_t precision_diff = PowerOfTen<Precision-NewP>::value;
+        const __int128_t decimal_128 = static_cast<__int128_t>(value.decimal);
+        const __int128_t adjusted = (10 * decimal_128) + (Negative() ? -(5*precision_diff) : (5*precision_diff));
+        const __int128_t result = adjusted / (10 * precision_diff);
+        const __int128_t new_integer = value.integer + result / PowerOfTen<NewP>::value;
+        const __int128_t new_decimal = result % PowerOfTen<NewP>::value;
+        if (new_integer > INT64_MAX || new_integer < INT64_MIN) {
+            throw std::overflow_error("Integer part overflow during conversion");
+        }
+        if (new_decimal > INT64_MAX || new_decimal < INT64_MIN) {
+            throw std::overflow_error("Decimal part overflow during conversion");
+        }
+        return RT<NewP>::FromRaw(static_cast<int64_t>(new_integer), static_cast<int64_t>(new_decimal));
     }
 
 public:
@@ -722,6 +820,26 @@ template<uint P>
 class ShortQuantity : public ShortDecimal<P, ShortQuantity<P>> {
 public:
     explicit ShortQuantity(int64_t raw_value) : ShortDecimal<P, ShortQuantity>(raw_value) {}
+
+    template<uint NewP>
+    ShortQuantity<NewP> UpcastPrecision() {
+        return this->template IncreasePrecision<ShortQuantity, NewP>();
+    }
+
+    template<uint NewP>
+    ShortQuantity<NewP> DowncastPrecision(RoundModel::Up) {
+        return this->template DecreasePrecision<ShortQuantity, NewP>(RoundModel::Up());
+    }
+
+    template<uint NewP>
+    ShortQuantity<NewP> DowncastPrecision(RoundModel::Down) {
+        return this->template DecreasePrecision<ShortQuantity, NewP>(RoundModel::Down());
+    }
+
+    template<uint NewP>
+    ShortQuantity<NewP> DowncastPrecision(RoundModel::Near) {
+        return this->template DecreasePrecision<ShortQuantity, NewP>(RoundModel::Near());
+    }
 };
 
 template<uint P>
@@ -729,6 +847,25 @@ class LongQuantity : public LongDecimal<P, LongQuantity<P>> {
 public:
     explicit LongQuantity(LongDecimalRaw raw_value) : LongDecimal<P, LongQuantity>(raw_value) {}
 
+    template<uint NewP>
+    LongQuantity<NewP> UpcastPrecision() {
+        return this->template IncreasePrecision<LongQuantity, NewP>();
+    }
+
+    template<uint NewP>
+    LongQuantity<NewP> DowncastPrecision(RoundModel::Up) {
+        return this->template DecreasePrecision<LongQuantity, NewP>(RoundModel::Up());
+    }
+
+    template<uint NewP>
+    LongQuantity<NewP> DowncastPrecision(RoundModel::Down) {
+        return this->template DecreasePrecision<LongQuantity, NewP>(RoundModel::Down());
+    }
+
+    template<uint NewP>
+    LongQuantity<NewP> DowncastPrecision(RoundModel::Near) {
+        return this->template DecreasePrecision<LongQuantity, NewP>(RoundModel::Near());
+    }
 };
 
 template<uint P>
@@ -857,32 +994,32 @@ public:
 
     template<uint SQP>
     ShortQuantity<SQP> DivPxToSQty(const Price& px2, RoundModel::Up) {
-        return ShortDivShortToShort<ShortQuantity, SQP, Price, P>(px2, RoundModel::Up());
+        return this->template ShortDivShortToShort<ShortQuantity, SQP, Price, P>(px2, RoundModel::Up());
     }
 
     template<uint SQP>
     ShortQuantity<SQP> DivPxToSQty(const Price& px2, RoundModel::Down) {
-        return ShortDivShortToShort<ShortQuantity, SQP, Price, P>(px2, RoundModel::Down());
+        return this->template ShortDivShortToShort<ShortQuantity, SQP, Price, P>(px2, RoundModel::Down());
     }
 
     template<uint SQP>
     ShortQuantity<SQP> DivPxToSQty(const Price& px2, RoundModel::Near) {
-        return ShortDivShortToShort<ShortQuantity, SQP, Price, P>(px2, RoundModel::Near());
+        return this->template ShortDivShortToShort<ShortQuantity, SQP, Price, P>(px2, RoundModel::Near());
     }
 
     template<uint SQP>
     Price DivSQtyToPx(const ShortQuantity<SQP>& qty, RoundModel::Up) {
-        return ShortDivShortToShort<Price, P, ShortQuantity, SQP>(qty, RoundModel::Up());
+        return this->template ShortDivShortToShort<Price, P, ShortQuantity, SQP>(qty, RoundModel::Up());
     }
 
     template<uint SQP>
     Price DivSQtyToPx(const ShortQuantity<SQP>& qty, RoundModel::Down) {
-        return ShortDivShortToShort<Price, P, ShortQuantity, SQP>(qty, RoundModel::Down());
+        return this->template ShortDivShortToShort<Price, P, ShortQuantity, SQP>(qty, RoundModel::Down());
     }
 
     template<uint SQP>
     Price DivSQtyToPx(const ShortQuantity<SQP>& qty, RoundModel::Near) {
-        return ShortDivShortToShort<Price, P, ShortQuantity, SQP>(qty, RoundModel::Near());
+        return this->template ShortDivShortToShort<Price, P, ShortQuantity, SQP>(qty, RoundModel::Near());
     }
 
     template<uint LQP>
@@ -991,6 +1128,26 @@ public:
             throw std::overflow_error("Division overflow");
         }
         return Price(static_cast<int64_t>(result));
+    }
+
+    template<uint NewP>
+    Price<NewP> UpcastPrecision() {
+        return this->template IncreasePrecision<Price, NewP>();
+    }
+
+    template<uint NewP>
+    Price<NewP> DowncastPrecision(RoundModel::Up) {
+        return this->template DecreasePrecision<Price, NewP>(RoundModel::Up());
+    }
+
+    template<uint NewP>
+    Price<NewP> DowncastPrecision(RoundModel::Down) {
+        return this->template DecreasePrecision<Price, NewP>(RoundModel::Down());
+    }
+
+    template<uint NewP>
+    Price<NewP> DowncastPrecision(RoundModel::Near) {
+        return this->template DecreasePrecision<Price, NewP>(RoundModel::Near());
     }
 };
 

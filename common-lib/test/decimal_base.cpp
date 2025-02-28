@@ -1028,3 +1028,104 @@ TEST(IntQtyDivQtyTest, IntQtyDivQtyZeroDivisor) {
     ShortQuantity<2> qty2 = ShortQuantity<2>::FromRaw(0);
     EXPECT_THROW(qty1.DivToInt(qty2, RoundModel::Up()), std::invalid_argument);
 }
+
+TEST(ShortQuantityTest, UpcastPrecision) {
+    ShortQuantity<2> qty = ShortQuantity<2>::FromRaw(123); // 1.23
+    auto qty3 = qty.UpcastPrecision<3>();
+    EXPECT_EQ(qty3.GetRaw(), 1230); // 1.230
+}
+
+TEST(ShortQuantityTest, DowncastPrecisionUp) {
+    ShortQuantity<3> qty = ShortQuantity<3>::FromRaw(1234); // 1.234
+    auto qty2 = qty.DowncastPrecision<2>(RoundModel::Up());
+    EXPECT_EQ(qty2.GetRaw(), 124); // Rounded up to 1.24
+}
+
+TEST(ShortQuantityTest, DowncastPrecisionUpNegative) {
+    ShortQuantity<3> qty = ShortQuantity<3>::FromRaw(-1234); // -1.234
+    auto qty2 = qty.DowncastPrecision<2>(RoundModel::Up());
+    EXPECT_EQ(qty2.GetRaw(), -124); // Rounded up to -1.24
+}
+
+TEST(ShortQuantityTest, DowncastPrecisionDown) {
+    ShortQuantity<3> qty = ShortQuantity<3>::FromRaw(1235); // 1.235
+    auto qty2 = qty.DowncastPrecision<2>(RoundModel::Down());
+    EXPECT_EQ(qty2.GetRaw(), 123); // Truncated to 1.23
+}
+
+TEST(ShortQuantityTest, DowncastPrecisionNear) {
+    ShortQuantity<3> qty = ShortQuantity<3>::FromRaw(1235); // 1.235
+    auto qty2 = qty.DowncastPrecision<2>(RoundModel::Near());
+    EXPECT_EQ(qty2.GetRaw(), 124); // Rounded to nearest 1.24
+
+    ShortQuantity<3> qty3 = ShortQuantity<3>::FromRaw(1234); // 1.234
+    auto qty4 = qty3.DowncastPrecision<2>(RoundModel::Near());
+    EXPECT_EQ(qty4.GetRaw(), 123); // Rounded to nearest 1.23
+}
+
+TEST(LongQuantityTest, UpcastPrecision) {
+    LongQuantity<2> qty = LongQuantity<2>::FromRaw({1, 23}); // 1.23
+    auto qty3 = qty.UpcastPrecision<3>();
+    auto raw = qty3.GetRaw();
+    EXPECT_EQ(raw.integer, 1);
+    EXPECT_EQ(raw.decimal, 230); // 1.230
+}
+
+TEST(LongQuantityTest, DowncastPrecisionUp) {
+    LongQuantity<3> qty = LongQuantity<3>::FromRaw({1, 234}); // 1.234
+    auto qty2 = qty.DowncastPrecision<2>(RoundModel::Up());
+    auto raw = qty2.GetRaw();
+    EXPECT_EQ(raw.integer, 1);
+    EXPECT_EQ(raw.decimal, 24); // Rounded up to 1.24
+}
+
+TEST(LongQuantityTest, DowncastPrecisionUpWithCarry) {
+    LongQuantity<3> qty = LongQuantity<3>::FromRaw({0, 999}); // 0.999
+    auto qty2 = qty.DowncastPrecision<2>(RoundModel::Up());
+    auto raw = qty2.GetRaw();
+    EXPECT_EQ(raw.integer, 1);
+    EXPECT_EQ(raw.decimal, 0); // Rounded up to 1.00
+}
+
+TEST(LongQuantityTest, DowncastPrecisionNear) {
+    LongQuantity<3> qty = LongQuantity<3>::FromRaw({1, 235}); // 1.235
+    auto qty2 = qty.DowncastPrecision<2>(RoundModel::Near());
+    auto raw = qty2.GetRaw();
+    EXPECT_EQ(raw.integer, 1);
+    EXPECT_EQ(raw.decimal, 24); // Rounded to nearest 1.24
+}
+
+TEST(PriceTest, UpcastPrecision) {
+    Price<2> px = Price<2>::FromRaw(123); // 1.23
+    auto px3 = px.UpcastPrecision<3>();
+    EXPECT_EQ(px3.GetRaw(), 1230); // 1.230
+}
+
+TEST(PriceTest, DowncastPrecisionUp) {
+    Price<3> px = Price<3>::FromRaw(1234); // 1.234
+    auto px2 = px.DowncastPrecision<2>(RoundModel::Up());
+    EXPECT_EQ(px2.GetRaw(), 124); // Rounded up to 1.24
+}
+
+TEST(PriceTest, DowncastPrecisionDown) {
+    Price<3> px = Price<3>::FromRaw(1235); // 1.235
+    auto px2 = px.DowncastPrecision<2>(RoundModel::Down());
+    EXPECT_EQ(px2.GetRaw(), 123); // Truncated to 1.23
+}
+
+TEST(PriceTest, DowncastPrecisionNear) {
+    Price<3> px = Price<3>::FromRaw(1235); // 1.235
+    auto px2 = px.DowncastPrecision<2>(RoundModel::Near());
+    EXPECT_EQ(px2.GetRaw(), 124); // Rounded to nearest 1.24
+}
+
+TEST(ShortQuantityEdgeTest, UpcastOverflow) {
+    int64_t maxVal = INT64_MAX;
+    ShortQuantity<1> qty = ShortQuantity<1>::FromRaw(maxVal); // 922337203685477580.7
+    EXPECT_THROW(qty.UpcastPrecision<2>(), std::overflow_error);
+}
+
+TEST(LongQuantityEdgeTest, DowncastOverflow) {
+    LongQuantity<3> qty = LongQuantity<3>::FromRaw({INT64_MAX, 999});
+    EXPECT_THROW(qty.DowncastPrecision<2>(RoundModel::Up()), std::overflow_error);
+}
