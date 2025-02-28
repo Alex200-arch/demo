@@ -124,9 +124,9 @@ protected:
         static_assert(NewP >= 0 && NewP <= 9, "New precision must be between 0 and 9.");
         static_assert(Precision > NewP, "New precision must be less than origin.");
         constexpr int64_t precision_diff = PowerOfTen<Precision-NewP>::value;
-        const __int128_t value_128 = static_cast<__int128_t>(value);
-        const __int128_t adjusted = (10 * value_128) + (value > 0 ? (9*precision_diff) : -(9*precision_diff));
-        const __int128_t new_raw = adjusted / (10 * precision_diff);
+        constexpr int64_t carry = PowerOfTen<Precision-NewP-1>::value;
+        const __int128_t adjusted = static_cast<__int128_t>(value) + (value > 0 ? (9*carry) : -(9*carry));
+        const __int128_t new_raw = adjusted / precision_diff;
         return RT<NewP>::FromRaw(static_cast<int64_t>(new_raw));
     }
 
@@ -143,12 +143,60 @@ protected:
         static_assert(NewP >= 0 && NewP <= 9, "New precision must be between 0 and 9.");
         static_assert(Precision > NewP, "New precision must be less than origin.");
         constexpr int64_t precision_diff = PowerOfTen<Precision-NewP>::value;
-        const __int128_t value_128 = static_cast<__int128_t>(value);
-        const __int128_t adjusted = (10 * value_128) + (value > 0 ? (5*precision_diff) : -(5*precision_diff));
-        const __int128_t new_raw = adjusted / (10 * precision_diff);
+        constexpr int64_t carry = PowerOfTen<Precision-NewP-1>::value;
+        const __int128_t adjusted = static_cast<__int128_t>(value) + (value > 0 ? (5*carry) : -(5*carry));
+        const __int128_t new_raw = adjusted / precision_diff;
         return RT<NewP>::FromRaw(static_cast<int64_t>(new_raw));
     }
 
+    template<template<uint> typename RT, uint NewP>
+    RT<NewP> ToLongDecimal(RoundModel::Up) {
+        static_assert(NewP >= 0 && NewP <= 18, "New precision must be between 0 and 18.");
+        const int64_t int_part = value / SCALING_FACTOR;
+        const int64_t dec_part = value % SCALING_FACTOR;
+        if constexpr (NewP >= Precision) {
+            return RT<NewP>::FromRaw(int_part, dec_part * PowerOfTen<NewP - Precision>::value);
+        } else {
+            constexpr int64_t precision_diff = PowerOfTen<Precision-NewP>::value;
+            constexpr int64_t carry = PowerOfTen<Precision-NewP-1>::value;
+            const int64_t adjusted = dec_part + (value > 0 ? (9*carry) : -(9*carry));
+            const int64_t result = adjusted / precision_diff;
+            const int64_t new_integer = int_part + result / PowerOfTen<NewP>::value;
+            const int64_t new_decimal = result % PowerOfTen<NewP>::value;
+            return RT<NewP>::FromRaw(new_integer, new_decimal);
+        }
+    }
+
+    template<template<uint> typename RT, uint NewP>
+    RT<NewP> ToLongDecimal(RoundModel::Down) {
+        static_assert(NewP >= 0 && NewP <= 18, "New precision must be between 0 and 18.");
+        const int64_t int_part = value / SCALING_FACTOR;
+        const int64_t dec_part = value % SCALING_FACTOR;
+        if constexpr (NewP >= Precision) {
+            return RT<NewP>::FromRaw(int_part, dec_part * PowerOfTen<NewP - Precision>::value);
+        } else {
+            constexpr int64_t precision_diff = PowerOfTen<Precision-NewP>::value;
+            return RT<NewP>::FromRaw(int_part, dec_part / precision_diff);
+        }
+    }
+
+    template<template<uint> typename RT, uint NewP>
+    RT<NewP> ToLongDecimal(RoundModel::Near) {
+        static_assert(NewP >= 0 && NewP <= 18, "New precision must be between 0 and 18.");
+        const int64_t int_part = value / SCALING_FACTOR;
+        const int64_t dec_part = value % SCALING_FACTOR;
+        if constexpr (NewP >= Precision) {
+            return RT<NewP>::FromRaw(int_part, dec_part * PowerOfTen<NewP - Precision>::value);
+        } else {
+            constexpr int64_t precision_diff = PowerOfTen<Precision-NewP>::value;
+            constexpr int64_t carry = PowerOfTen<Precision-NewP-1>::value;
+            const int64_t adjusted = dec_part + (value > 0 ? (5*carry) : -(5*carry));
+            const int64_t result = adjusted / precision_diff;
+            const int64_t new_integer = int_part + result / PowerOfTen<NewP>::value;
+            const int64_t new_decimal = result % PowerOfTen<NewP>::value;
+            return RT<NewP>::FromRaw(new_integer, new_decimal);
+        }
+    }
 public:
     static Derived FromRaw(int64_t raw_value) {
         return Derived(raw_value);
@@ -444,9 +492,9 @@ protected:
         static_assert(NewP >= 0 && NewP <= 18, "New precision must be between 0 and 18.");
         static_assert(Precision > NewP, "New precision must be less than origin.");
         constexpr int64_t precision_diff = PowerOfTen<Precision-NewP>::value;
-        const __int128_t decimal_128 = static_cast<__int128_t>(value.decimal);
-        const __int128_t adjusted = (10 * decimal_128) + (Negative() ? -(9*precision_diff) : (9*precision_diff));
-        const __int128_t result = adjusted / (10 * precision_diff);
+        constexpr int64_t carry = PowerOfTen<Precision-NewP-1>::value;
+        const __int128_t adjusted = static_cast<__int128_t>(value.decimal) + (Negative() ? -(9*carry) : (9*carry));
+        const __int128_t result = adjusted / precision_diff;
         const __int128_t new_integer = value.integer + result / PowerOfTen<NewP>::value;
         const __int128_t new_decimal = result % PowerOfTen<NewP>::value;
         if (new_integer > INT64_MAX || new_integer < INT64_MIN) {
@@ -471,9 +519,9 @@ protected:
         static_assert(NewP >= 0 && NewP <= 18, "New precision must be between 0 and 18.");
         static_assert(Precision > NewP, "New precision must be less than origin.");
         constexpr int64_t precision_diff = PowerOfTen<Precision-NewP>::value;
-        const __int128_t decimal_128 = static_cast<__int128_t>(value.decimal);
-        const __int128_t adjusted = (10 * decimal_128) + (Negative() ? -(5*precision_diff) : (5*precision_diff));
-        const __int128_t result = adjusted / (10 * precision_diff);
+        constexpr int64_t carry = PowerOfTen<Precision-NewP-1>::value;
+        const __int128_t adjusted = static_cast<__int128_t>(value.decimal) + (Negative() ? -(5*carry) : (5*carry));
+        const __int128_t result = adjusted / precision_diff;
         const __int128_t new_integer = value.integer + result / PowerOfTen<NewP>::value;
         const __int128_t new_decimal = result % PowerOfTen<NewP>::value;
         if (new_integer > INT64_MAX || new_integer < INT64_MIN) {
@@ -840,6 +888,21 @@ public:
     ShortQuantity<NewP> DowncastPrecision(RoundModel::Near) {
         return this->template DecreasePrecision<ShortQuantity, NewP>(RoundModel::Near());
     }
+
+    template<uint LP>
+    LongQuantity<LP> ToLongQuantity(RoundModel::Up) {
+        return this->template ToLongDecimal<LongQuantity, LP>(RoundModel::Up());
+    }
+
+    template<uint LP>
+    LongQuantity<LP> ToLongQuantity(RoundModel::Down) {
+        return this->template ToLongDecimal<LongQuantity, LP>(RoundModel::Down());
+    }
+
+    template<uint LP>
+    LongQuantity<LP> ToLongQuantity(RoundModel::Near) {
+        return this->template ToLongDecimal<LongQuantity, LP>(RoundModel::Near());
+    }
 };
 
 template<uint P>
@@ -1149,6 +1212,8 @@ public:
     Price<NewP> DowncastPrecision(RoundModel::Near) {
         return this->template DecreasePrecision<Price, NewP>(RoundModel::Near());
     }
+
+    // TODO: to long
 };
 
 #endif

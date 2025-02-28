@@ -1129,3 +1129,83 @@ TEST(LongQuantityEdgeTest, DowncastOverflow) {
     LongQuantity<3> qty = LongQuantity<3>::FromRaw({INT64_MAX, 999});
     EXPECT_THROW(qty.DowncastPrecision<2>(RoundModel::Up()), std::overflow_error);
 }
+
+TEST(ShortQuantityToLongQuantity, HigherPrecision) {
+    // Convert from Precision 3 to 5 (higher)
+    ShortQuantity<3> q = ShortQuantity<3>::FromRaw(123456); // Represents 123.456
+    auto lq = q.template ToLongQuantity<5>(RoundModel::Up());
+    
+    EXPECT_EQ(lq.GetRaw().integer, 123);
+    EXPECT_EQ(lq.GetRaw().decimal, 45600);
+}
+
+TEST(ShortQuantityToLongQuantity, LowerPrecisionRoundUp) {
+    ShortQuantity<3> q = ShortQuantity<3>::FromRaw(123456); // 123.456
+    auto lq = q.template ToLongQuantity<2>(RoundModel::Up());
+    
+    EXPECT_EQ(lq.GetRaw().integer, 123);
+    EXPECT_EQ(lq.GetRaw().decimal, 46);
+}
+
+TEST(ShortQuantityToLongQuantity, LowerPrecisionRoundDown) {
+    ShortQuantity<3> q = ShortQuantity<3>::FromRaw(123456); // 123.456
+    auto lq = q.template ToLongQuantity<2>(RoundModel::Down());
+    
+    EXPECT_EQ(lq.GetRaw().integer, 123);
+    EXPECT_EQ(lq.GetRaw().decimal, 45);
+}
+
+TEST(ShortQuantityToLongQuantity, LowerPrecisionRoundNear) {
+    ShortQuantity<3> q = ShortQuantity<3>::FromRaw(123456); // 123.456
+    auto lq = q.template ToLongQuantity<2>(RoundModel::Near());
+    
+    EXPECT_EQ(lq.GetRaw().integer, 123);
+    EXPECT_EQ(lq.GetRaw().decimal, 46);
+}
+
+TEST(ShortQuantityToLongQuantity, NegativeRoundUp) {
+    ShortQuantity<3> q = ShortQuantity<3>::FromRaw(-123456); // -123.456
+    auto lq = q.template ToLongQuantity<2>(RoundModel::Up());
+    
+    EXPECT_EQ(lq.GetRaw().integer, -123);
+    EXPECT_EQ(lq.GetRaw().decimal, -46);
+}
+
+TEST(ShortQuantityToLongQuantity, RoundUpWithCarry) {
+    ShortQuantity<3> q = ShortQuantity<3>::FromRaw(999999); // 999.999
+    auto lq = q.template ToLongQuantity<2>(RoundModel::Up());
+    
+    EXPECT_EQ(lq.GetRaw().integer, 1000);
+    EXPECT_EQ(lq.GetRaw().decimal, 0);
+}
+
+TEST(ShortQuantityToLongQuantity, RoundNearMidpoint) {
+    ShortQuantity<3> q = ShortQuantity<3>::FromRaw(123455); // 123.455
+    auto lq = q.template ToLongQuantity<2>(RoundModel::Near());
+    
+    EXPECT_EQ(lq.GetRaw().integer, 123);
+    EXPECT_EQ(lq.GetRaw().decimal, 46);
+}
+
+TEST(ShortQuantityToLongQuantity, RoundNearNegative) {
+    ShortQuantity<3> q = ShortQuantity<3>::FromRaw(-123455); // -123.455
+    auto lq = q.template ToLongQuantity<2>(RoundModel::Near());
+    
+    EXPECT_EQ(lq.GetRaw().integer, -123);
+    EXPECT_EQ(lq.GetRaw().decimal, -46);
+}
+
+TEST(ShortQuantityToLongQuantity, ZeroConversion) {
+    ShortQuantity<3> q = ShortQuantity<3>::FromRaw(0);
+    auto lq = q.template ToLongQuantity<2>(RoundModel::Up());
+    
+    EXPECT_EQ(lq.GetRaw().integer, 0);
+    EXPECT_EQ(lq.GetRaw().decimal, 0);
+}
+
+TEST(ShortQuantityToLongQuantity, MaxValueConversion) {
+    ShortQuantity<3> q = ShortQuantity<3>::FromRaw(INT64_MAX); // 9223372036854775.807
+    auto lq = q.template ToLongQuantity<5>(RoundModel::Up());
+    EXPECT_EQ(lq.GetRaw().integer, 9223372036854775L);
+    EXPECT_EQ(lq.GetRaw().decimal, 80700);
+}
